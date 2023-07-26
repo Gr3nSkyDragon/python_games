@@ -8,7 +8,7 @@ pygame.init()
 screen_width = 1280
 screen_height = 720
 screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
-pygame.display.set_caption("Scuba Reader v.1.2")
+pygame.display.set_caption("Scuba Reader v.1.2.5")
 Icon = pygame.image.load('resources/icon/snorkel.png')
 pygame.display.set_icon(Icon)
 
@@ -28,10 +28,10 @@ class TextObject(pygame.sprite.Sprite):
         self.rect = self.text_rect.copy()
         self.rect.x = -self.rect.width + offset  # Start the text off-screen on the left with offset
         self.rect.y = random.randint(0, screen_height - self.rect.height)  # Random Y position
-        self.scroll_speed = 1.5  # Scroll speed
+        self.scroll_speed = 0.25  # Scroll speed
 
     def update(self):
-        self.rect.x += self.scroll_speed  # Move the text to the right
+        self.rect.x += self.scroll_speed # Move the text to the right
 
         if self.rect.left > screen_width:  # If the text goes off the screen on the right
             self.rect.x = -self.rect.width  # Reset its position to the left
@@ -68,9 +68,20 @@ scuba_image_original = scuba_image.copy()
 scuba_width_factor = 6
 scuba_height_factor = 3
 
+# Define initial scroll speed and change in scroll speed
+scroll_speed = 1.75
+scroll_speed_change = 0.25
+
+# Define the initial size of the buttons relative to the screen width and height
+button_size_factor = 0.06
+
+# Calculate button size and spacing
+button_size = int(min(screen_width, screen_height) * button_size_factor)
+button_spacing = int(button_size * 0.5)
+
 # Function to handle resizing of elements
 def handle_resize():
-    global screen_width, screen_height, background_image, scuba_image
+    global screen_width, screen_height, background_image, scuba_image, button_size, button_spacing
 
     # Scale the background image to fit the new screen size
     background_image = pygame.transform.scale(background_image_original, (screen_width, screen_height))
@@ -83,14 +94,55 @@ def handle_resize():
     for text_obj in all_text_objects:
         text_obj.rect.y = random.randint(0, screen_height - text_obj.rect.height)
 
+    # Update button size and spacing based on the screen size
+    button_size = int(min(screen_width, screen_height) * button_size_factor)
+    button_spacing = int(button_size * 0.5)
+
+
 # Initial resizing
 handle_resize()
+
+# Create buttons surfaces with a light blue background
+button_color_light_blue = (173, 216, 230, 200)  # Light blue color with transparency
+plus_button = pygame.Surface((button_size, button_size), pygame.SRCALPHA)
+minus_button = pygame.Surface((button_size, button_size), pygame.SRCALPHA)
+
+# Fill the button surfaces with the light blue color
+plus_button.fill(button_color_light_blue)
+minus_button.fill(button_color_light_blue)
+
+# Render "+" and "-" symbols on buttons
+plus_text = font.render("+", True, (65, 240, 100))  # Green text color
+minus_text = font.render("-", True, (65, 240, 100))
+
+# Blit the symbols on the buttons (with an outline)
+plus_button.blit(plus_text, (button_size // 2 - plus_text.get_width() // 2, button_size // 2 - plus_text.get_height() // 2))
+minus_button.blit(minus_text, (button_size // 2 - minus_text.get_width() // 2, button_size // 2 - minus_text.get_height() // 2))
+
+# Function to display current scroll speed and buttons
+def display_scroll_speed():
+    # Draw "-" button with an outline
+    minus_button_rect = minus_button.get_rect(center=(screen_width - button_size * 2.4 - button_spacing * 1.5, 30))  # Adjusted position
+    pygame.draw.rect(screen, (0, 0, 0), minus_button_rect, 2)
+    screen.blit(minus_button, minus_button_rect)
+
+    # Draw speed text without an outline
+    speed_text = font.render(f"{scroll_speed - 0.25:.2f}x", True, (65, 240, 100))
+    speed_rect = speed_text.get_rect(center=(screen_width - button_size * 1.4 - button_spacing, 30))  # Adjusted position
+    screen.blit(speed_text, speed_rect)
+
+    # Draw "+" button with an outline
+    plus_button_rect = plus_button.get_rect(center=(screen_width - button_size * 0.125 - button_spacing, 30))  # Adjusted position
+    pygame.draw.rect(screen, (0, 0, 0), plus_button_rect, 2)
+    screen.blit(plus_button, plus_button_rect)
 
 # Game loop
 running = True
 clock = pygame.time.Clock()
 
 while running:
+    button_clicked = False
+
     # Handle events
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -99,8 +151,23 @@ while running:
             screen_width, screen_height = event.size
             screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
             handle_resize()
+        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            # Check if the mouse clicked on the plus or minus button
+            if screen_width - button_size * 3 - button_spacing * 1.5 < event.pos[0] < screen_width - button_size * 2 - button_spacing * 0.5:
+                if 10 < event.pos[1] < 10 + button_size:  # Minus button clicked
+                    if scroll_speed != 0.25:
+                        scroll_speed -= scroll_speed_change
+                    button_clicked = True
+            elif screen_width - button_size * 2 - button_spacing * 1.5 < event.pos[0] < screen_width - button_spacing // 2:
+                if 10 < event.pos[1] < 10 + button_size:  # Plus button clicked
+                    scroll_speed += scroll_speed_change
+                    button_clicked = True
 
-    # Update text objects
+    # Update text objects with new scroll speed
+    for text_obj in all_text_objects:
+        text_obj.scroll_speed = scroll_speed
+
+    # Update text objects positions
     all_text_objects.update()
 
     # Render
@@ -110,8 +177,14 @@ while running:
     for text_obj in all_text_objects:
         screen.blit(scuba_image, text_obj.rect)  # Draw scuba image
         text_rect_center = text_obj.rect.center
-        text_rect_center = (text_rect_center[0] + (scuba_image.get_width() - text_obj.text_rect.width) // 2, text_rect_center[1] + (scuba_image.get_height() - text_obj.text_rect.height) // 3.5)
+        text_rect_center = (
+            text_rect_center[0] + (scuba_image.get_width() - text_obj.text_rect.width) // 2,
+            text_rect_center[1] + (scuba_image.get_height() - text_obj.text_rect.height) // 3.5,
+        )
         screen.blit(text_obj.text_image, text_rect_center)  # Draw centered text over scuba image
+
+    # Display current scroll speed and buttons
+    display_scroll_speed()
 
     # Update the display
     pygame.display.flip()
