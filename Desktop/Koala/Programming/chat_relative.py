@@ -34,6 +34,9 @@ def main():
     # Load the background image
     background_img = pygame.image.load("resources/background/galaxy.jpg")
     background_img = pygame.transform.scale(background_img, (WINDOW_WIDTH, WINDOW_HEIGHT))
+    
+    Icon = pygame.image.load('resources/icon/telescope.png')
+    pygame.display.set_icon(Icon)
 
     # Calculate the starting y-coordinate for all rows of rectangles
     start_y = (WINDOW_HEIGHT - 3 * RECT_SIZE - 2 * RECT_GAP) // 2
