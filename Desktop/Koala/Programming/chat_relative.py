@@ -1,125 +1,315 @@
 import pygame
+import os
 import random
+import string
+import sys
 
 # Initialize Pygame
 pygame.init()
+pygame.display.set_caption('Star CVC v.1.0')
+Icon = pygame.image.load('resources/icon/star.jpg')
+pygame.display.set_icon(Icon)
 
-# Constants
-WINDOW_WIDTH, WINDOW_HEIGHT = 1280, 720
-RECT_SIZE = 100
-RECT_GAP = 20
-GRID_SIZE = 9
-NUM_RECTS_1 = 9
-NUM_RECTS_2 = 8
-NUM_RECTS_3 = 9
+# Set up display
+screen_width = 1280
+screen_height = 720
+screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)  # Make the screen resizable
 
-# Function to get the corresponding letter for a given index
-def get_letter(index):
-    if index < 9:
-        return chr(ord('A') + index)
-    elif index < 17:
-        return chr(ord('J') + index - 9)
-    else:
-        return chr(ord('R') + index - 17)
+# Get the path to the folder containing this script
+#script_folder = os.path.dirname(os.path.abspath(__file__))
+script_folder = os.getcwd()
 
-# Main function
-def main():
-    global WINDOW_WIDTH, WINDOW_HEIGHT  # Marking variables as global
+absolute_path = os.path.abspath(__file__)
+print("Absolute path:", absolute_path)
 
-    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
-    pygame.display.set_caption("Resizable Colorful Rows of Rectangles")
+# Specify the folder containing phonics words
+phonics_words_folder = os.path.join(sys._MEIPASS, "resources/star/phonics words")
 
-    clock = pygame.time.Clock()
+# Get a list of folder names in the "phonics words" folder
+folder_names = [name for name in os.listdir(phonics_words_folder) if os.path.isdir(os.path.join(phonics_words_folder, name))]
 
-    # Load the background image
-    background_img = pygame.image.load("resources/background/galaxy.jpg")
-    background_img = pygame.transform.scale(background_img, (WINDOW_WIDTH, WINDOW_HEIGHT))
+# Choose the first folder name
+if folder_names:
+    selected_folder_name = folder_names[0]
+else:
+    selected_folder_name = "No folders found"
+
+# Get the path to the selected sub-folder
+selected_subfolder_path = os.path.join(phonics_words_folder, selected_folder_name)
+
+# Get a list of image filenames in the selected sub-folder
+image_filenames = [name for name in os.listdir(selected_subfolder_path) if name.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
+
+# Choose a random image filename
+if image_filenames:
+    selected_image_filename = random.choice(image_filenames)
+    image_path = os.path.join(selected_subfolder_path, selected_image_filename)
+    original_image = pygame.image.load(image_path)
+    max_image_size = int(min(screen_width * 0.6, screen_height * 0.5))  # Limit to 60% width or 50% height
+    image = pygame.transform.scale(original_image, (max_image_size, max_image_size))
+    image_first_letter = selected_image_filename[0].upper()  # Get the first letter of the image filename
+else:
+    image = None
+
+# Define colors
+white = (162,228,184)
+black = (0, 0, 0)
+red = (255, 0, 0)
+green = (0, 255, 0)
+gray_blue = (173, 216, 230)  # A shade of blue-gray
+
+# Define folder index
+index = 0
+
+# Load font
+game_font_size = int(0.26 * pygame.display.Info().current_h)
+font = pygame.font.Font(None, game_font_size)
+
+# Define relative dimensions
+text_y_percent = 0.64
+image_y_percent = 0.3
+button_y_percent = 0.8
+next_button_y_percent = 1.0
+
+# Calculate text position
+text_surface = font.render(selected_folder_name, True, black)
+text_rect = text_surface.get_rect()
+text_x = screen_width / 2 - text_rect.width / 2
+text_y = screen_height * text_y_percent - text_rect.height / 2
+
+# Calculate image position
+if image:
+    image_x = screen_width / 2 - image.get_width() / 2
+    image_y = screen_height * image_y_percent - image.get_height() / 2
+
+class Button:
+    def __init__(self, x, y, text, color=gray_blue):
+        self.rect = pygame.Rect(x, y, button_width, button_height)
+        self.text = text
+        self.color = color
     
-    Icon = pygame.image.load('resources/icon/telescope.png')
-    pygame.display.set_icon(Icon)
+    def draw(self):
+        pygame.draw.rect(screen, self.color, self.rect)
+        font = pygame.font.Font(None, int(game_font_size * 0.3))
+        text_surface = font.render(self.text, True, black)
+        text_rect = text_surface.get_rect(center=self.rect.center)
+        screen.blit(text_surface, text_rect)
+        
+# Calculate button positions and dimensions
+button_width_percent = 0.15
+button_height_percent = 0.08
+next_button_height_percent = 0.1
 
-    # Calculate the starting y-coordinate for all rows of rectangles
-    start_y = (WINDOW_HEIGHT - 3 * RECT_SIZE - 2 * RECT_GAP) // 2
+button_width = screen_width * button_width_percent
+button_height = screen_height * button_height_percent
+next_button_height = screen_height * next_button_height_percent
+button_spacing = (screen_width - 4 * button_width) / 5
 
-    # Function to change the color of the clicked rectangle randomly
-    def change_color(i):
-        if colors[i] == (255, 255, 0):
-            r, g, b = random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)
-            new_color = (r, g, b)
-            while new_color == (255, 255, 0) or new_color in colors[:i]:  # Ensure the new color is not yellow and not used before
-                r, g, b = random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)
-                new_color = (r, g, b)
-            colors[i] = new_color
+button_y = screen_height * button_y_percent - button_height / 2
 
-    # Calculate the positions and sizes of rectangles
-    def calculate_rectangles():
-        total_rects_width_1 = NUM_RECTS_1 * RECT_SIZE + (NUM_RECTS_1 - 1) * RECT_GAP
-        total_rects_width_2 = NUM_RECTS_2 * RECT_SIZE + (NUM_RECTS_2 - 1) * RECT_GAP
-        total_rects_width_3 = NUM_RECTS_3 * RECT_SIZE + (NUM_RECTS_3 - 1) * RECT_GAP
+# Calculate the initial position of the next button
+next_button_rect = pygame.Rect(screen_width - button_width - int(screen_width * 0.025), screen_height - next_button_height - int(screen_height * 0.025), button_width, next_button_height)
+next_button = Button(next_button_rect.x, next_button_rect.y, "Next")
 
-        start_x_1 = (WINDOW_WIDTH - total_rects_width_1) // 2
-        start_x_2 = (WINDOW_WIDTH - total_rects_width_2) // 2
-        start_x_3 = (WINDOW_WIDTH - total_rects_width_3) // 2
+# Generate random consonant excluding the image's first letter
+def generate_random_consonant(exclude_letter):
+    consonants = ''.join([c for c in string.ascii_uppercase if c not in 'AEIOU' and c != exclude_letter])
+    return random.choice(consonants)
+    
+# Create a list of random consonants
+random_letters = [generate_random_consonant(image_first_letter) for _ in range(3)]
 
-        # Adjust rectangle size based on the new window dimensions
-        rect_size = min(RECT_SIZE, (WINDOW_HEIGHT - 2 * RECT_GAP) // 3)
+# Create buttons with original 80% height for random consonant buttons
+random_consonant_buttons = [
+    Button(button_spacing, button_y, random_letters[0]),
+    Button(button_spacing * 2 + button_width, button_y, random_letters[1]),
+    Button(button_spacing * 3 + button_width * 2, button_y, random_letters[2]),
+    Button(button_spacing * 4 + button_width * 3, button_y, generate_random_consonant(image_first_letter))
+]
 
-        rectangles = []
-        for i in range(NUM_RECTS_1 + NUM_RECTS_2 + NUM_RECTS_3):
-            if i < NUM_RECTS_1:
-                rect_x = start_x_1 + i * (rect_size + RECT_GAP)
-                rect_y = start_y
-            elif i < NUM_RECTS_1 + NUM_RECTS_2:
-                rect_x = start_x_2 + (i - NUM_RECTS_1) * (rect_size + RECT_GAP)
-                rect_y = start_y + rect_size + RECT_GAP
-            else:
-                rect_x = start_x_3 + (i - NUM_RECTS_1 - NUM_RECTS_2) * (rect_size + RECT_GAP)
-                rect_y = start_y + 2 * (rect_size + RECT_GAP)
+# Randomly select a button index to replace its content with the image letter
+random_button_index = random.randint(0, 3)
+random_consonant_buttons[random_button_index] = Button(
+    random_consonant_buttons[random_button_index].rect.x,
+    button_y,
+    image_first_letter,
+    color=gray_blue
+)
 
-            rectangles.append(pygame.Rect(rect_x, rect_y, rect_size, rect_size))
+# Create the "<" and ">" buttons
+prev_button = Button(screen_width * 0.05, screen_height * 0.1 - button_height / 2, "<")
+next_folder_index = min(index + 1, len(folder_names) - 1)
+inc_button = Button(screen_width * 0.15, screen_height * 0.1 - button_height / 2, ">")
 
-        return rectangles
+random_button_index = random.randint(0, 3)  # Initialize random_button_index outside the function
 
-    # Main game loop
-    running = True
-    colors = [(255, 255, 0)] * (NUM_RECTS_1 + NUM_RECTS_2 + NUM_RECTS_3)
-    rectangles = calculate_rectangles()
+def update_folder_and_image(selected_folder_name, folder_names, index, selected_subfolder_path, image_first_letter, random_consonant_buttons, button_y, selected_image_filename, random_button_index):
+    if folder_names:
+        selected_folder_name = folder_names[index]
+        selected_subfolder_path = os.path.join(phonics_words_folder, selected_folder_name)
+        image_filenames = [name for name in os.listdir(selected_subfolder_path) if name.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
 
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                for i, rect in enumerate(rectangles):
-                    if rect.collidepoint(event.pos):
-                        change_color(i)
+        if image_filenames:
+            selected_image_filename = random.choice(image_filenames)
+            image_path = os.path.join(selected_subfolder_path, selected_image_filename)
+            original_image = pygame.image.load(image_path)
+            image = pygame.transform.scale(original_image, (max_image_size, max_image_size))
+            image_first_letter = selected_image_filename[0].upper()
 
-            # Handle resizing events
-            elif event.type == pygame.VIDEORESIZE:
-                WINDOW_WIDTH, WINDOW_HEIGHT = event.w, event.h
-                screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
-                background_img = pygame.transform.scale(background_img, (WINDOW_WIDTH, WINDOW_HEIGHT))
-                rectangles = calculate_rectangles()
+            # Update the positions of the random consonant buttons
+            for i, button in enumerate(random_consonant_buttons):
+                if i == random_button_index:
+                    button.text = image_first_letter
+                else:
+                    placeholder_consonant = generate_random_consonant(image_first_letter)
+                    while placeholder_consonant == image_first_letter:
+                        placeholder_consonant = generate_random_consonant(image_first_letter)
+                    button.text = placeholder_consonant
 
-        # Draw the background image
-        screen.blit(background_img, (0, 0))
+                # Update the button positions based on the new screen dimensions
+                button.rect.x = button_spacing * (i + 1) + button_width * i
+                button.rect.y = button_y
 
-        # Draw the rows of rectangles with their respective colors and labels
-        font = pygame.font.Font(None, 36)
-        for i, rect in enumerate(rectangles):
-            pygame.draw.rect(screen, colors[i], rect)
-            if colors[i] != (255, 255, 0):
-                letter = font.render(get_letter(i), True, (0, 0, 0))
-                screen.blit(letter, (rect.x + rect.width // 2 - letter.get_width() // 2,
-                                     rect.y + rect.height // 2 - letter.get_height() // 2))
+            # Reset button colors
+            for button in random_consonant_buttons:
+                button.color = gray_blue
 
-        # Update the display
-        pygame.display.flip()
+            # If the image letter button is not already in place
+            if random_consonant_buttons[random_button_index].text != image_first_letter:
+                # Replace a random button with the image letter button
+                random_replace_index = random.randint(0, 3)
+                random_consonant_buttons[random_replace_index] = Button(
+                    random_consonant_buttons[random_replace_index].rect.x,
+                    button_y,
+                    image_first_letter,
+                    color=gray_blue
+                )
+                random_button_index = random_replace_index
 
-        # Limit frames per second
-        clock.tick(60)
+        else:
+            image = None
 
-    pygame.quit()
+    else:
+        selected_folder_name = "No folders found"
+        image = None
 
-if __name__ == "__main__":
-    main()
+    return selected_folder_name, selected_subfolder_path, image_first_letter, image, selected_image_filename
+
+def update_ui_positions():
+    global text_x, text_y, image_x, image_y, button_width, button_height, button_spacing, button_y, next_button_rect, random_button_index
+
+    text_x = screen_width / 2 - text_rect.width / 2
+    text_y = screen_height * text_y_percent - text_rect.height / 2
+
+    if image:
+        image_x = screen_width / 2 - image.get_width() / 2
+        image_y = screen_height * image_y_percent - image.get_height() / 2
+
+    button_width = screen_width * button_width_percent
+    button_height = screen_height * button_height_percent
+    next_button_height = screen_height * next_button_height_percent
+    button_spacing = (screen_width - 4 * button_width) / 5
+
+    button_y = screen_height * button_y_percent - button_height / 2
+
+    # Update next button position and dimensions
+    next_button_rect = pygame.Rect(screen_width - button_width, screen_height - next_button_height, button_width, next_button_height)
+    next_button.rect = next_button_rect
+
+    # Calculate next button position 10% away from both bottom and right edges
+    next_button.rect.x -= int(screen_width * 0.025)
+    next_button.rect.y -= int(screen_height * 0.025)
+
+    # Update random consonant button positions and dimensions
+    for i, button in enumerate(random_consonant_buttons):
+        button.rect.y = button_y
+        button.rect.x = button_spacing * (i + 1) + button_width * i
+        button.rect.width = button_width
+        button.rect.height = button_height
+
+    # Update image letter button position and dimensions
+    random_consonant_buttons[random_button_index].rect.y = button_y
+    random_consonant_buttons[random_button_index].rect.x = button_spacing * (random_button_index + 1) + button_width * random_button_index
+    random_consonant_buttons[random_button_index].rect.width = button_width
+    random_consonant_buttons[random_button_index].rect.height = button_height
+
+update_ui_positions()
+    
+# Main loop
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            mouse_pos = pygame.mouse.get_pos()
+            
+            # Check if "<" button is clicked
+            if prev_button.rect.collidepoint(mouse_pos):
+                index = max(index - 1, 0)
+                selected_folder_name, selected_subfolder_path, image_first_letter, image, selected_image_filename = update_folder_and_image(
+                    selected_folder_name, folder_names, index, selected_subfolder_path, image_first_letter, random_consonant_buttons, button_y, selected_image_filename, random_button_index
+                )
+                random_button_index = random.randint(0, 3)  # Update random_button_index after folder change
+                update_ui_positions()  # Update UI element positions after folder change
+            
+            # Check if ">" button is clicked
+            elif inc_button.rect.collidepoint(mouse_pos):
+                index = min(index + 1, len(folder_names) - 1)
+                selected_folder_name, selected_subfolder_path, image_first_letter, image, selected_image_filename = update_folder_and_image(
+                    selected_folder_name, folder_names, index, selected_subfolder_path, image_first_letter, random_consonant_buttons, button_y, selected_image_filename, random_button_index
+                )
+                random_button_index = random.randint(0, 3)  # Update random_button_index after folder change
+                update_ui_positions()  # Update UI element positions after folder change
+
+            # Check if "Next" button is clicked
+            elif next_button.rect.collidepoint(mouse_pos):
+                random_button_index = random.randint(0, 3)  # Randomly select a new button index
+                random_consonant_buttons[random_button_index] = Button(
+                    random_consonant_buttons[random_button_index].rect.x,
+                    button_y,
+                    image_first_letter,
+                    color=gray_blue
+                )
+                selected_folder_name, selected_subfolder_path, image_first_letter, image, selected_image_filename = update_folder_and_image(
+                    selected_folder_name, folder_names, index, selected_subfolder_path, image_first_letter, random_consonant_buttons, button_y, selected_image_filename, random_button_index
+                )
+                update_ui_positions()  # Update UI element positions after button replacement
+
+            # Check if any other button is clicked
+            for button in random_consonant_buttons:
+                if button.rect.collidepoint(mouse_pos):
+                    if button.text == image_first_letter:
+                        button.color = green  # Change button color to green when clicked
+                        selected_folder_name = selected_image_filename.split('.')[0]  # Use image name as folder name
+                    else:
+                        button.color = red  # Change button color to red when clicked
+                        
+        elif event.type == pygame.VIDEORESIZE:
+            # Update screen dimensions
+            screen_width = event.w
+            screen_height = event.h
+            screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
+            update_ui_positions()  # Update UI element positions when resizing
+
+    screen.fill(white)  # Clear the screen with white background
+    
+    if image:
+        screen.blit(image, (image_x, image_y))  # Blit the image
+    
+    text_surface = font.render(selected_folder_name, True, black)  # Update the text surface with folder name
+    screen.blit(text_surface, (text_x, text_y))  # Blit the text
+    
+    for button in random_consonant_buttons:
+        button.draw()  # Draw the random consonant buttons
+    
+    next_button.draw()  # Draw the "Next" button
+    
+    # Draw the "<" and ">" buttons
+    prev_button.draw()
+    inc_button.draw()
+    
+    pygame.display.flip()  # Update the display
+
+# Quit Pygame
+pygame.quit()
