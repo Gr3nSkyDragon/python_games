@@ -2,7 +2,6 @@ import pygame
 import os
 import random
 import string
-import sys
 
 # Initialize Pygame
 pygame.init()
@@ -16,14 +15,10 @@ screen_height = 720
 screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)  # Make the screen resizable
 
 # Get the path to the folder containing this script
-#script_folder = os.path.dirname(os.path.abspath(__file__))
-script_folder = os.getcwd()
-
-absolute_path = os.path.abspath(__file__)
-print("Absolute path:", absolute_path)
+script_folder = os.path.dirname(os.path.abspath(__file__))
 
 # Specify the folder containing phonics words
-phonics_words_folder = os.path.join(sys._MEIPASS, "resources/star/phonics words")
+phonics_words_folder = os.path.join(script_folder, "resources/star/families")
 
 # Get a list of folder names in the "phonics words" folder
 folder_names = [name for name in os.listdir(phonics_words_folder) if os.path.isdir(os.path.join(phonics_words_folder, name))]
@@ -226,6 +221,15 @@ def update_ui_positions():
         button.rect.x = button_spacing * (i + 1) + button_width * i
         button.rect.width = button_width
         button.rect.height = button_height
+
+    # Update "<" and ">" button positions and dimensions
+    prev_button.rect.y = screen_height * 0.1 - button_height / 2
+    prev_button.rect.width = button_width * 0.75
+    prev_button.rect.height = button_height
+
+    inc_button.rect.y = screen_height * 0.1 - button_height / 2
+    inc_button.rect.width = button_width  * 0.75
+    inc_button.rect.height = button_height
 
     # Update image letter button position and dimensions
     random_consonant_buttons[random_button_index].rect.y = button_y

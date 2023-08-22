@@ -222,6 +222,15 @@ def update_ui_positions():
         button.rect.width = button_width
         button.rect.height = button_height
 
+    # Update "<" and ">" button positions and dimensions
+    prev_button.rect.y = screen_height * 0.1 - button_height / 2
+    prev_button.rect.width = button_width * 0.75
+    prev_button.rect.height = button_height
+
+    inc_button.rect.y = screen_height * 0.1 - button_height / 2
+    inc_button.rect.width = button_width  * 0.75
+    inc_button.rect.height = button_height
+
     # Update image letter button position and dimensions
     random_consonant_buttons[random_button_index].rect.y = button_y
     random_consonant_buttons[random_button_index].rect.x = button_spacing * (random_button_index + 1) + button_width * random_button_index
