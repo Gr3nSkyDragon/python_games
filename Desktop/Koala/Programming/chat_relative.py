@@ -5,7 +5,8 @@ import string
 
 # Initialize Pygame
 pygame.init()
-pygame.display.set_caption('Star CVC v.1.0')
+pygame.mixer.init()
+pygame.display.set_caption('Star CVC v.2.0')
 Icon = pygame.image.load('resources/icon/star.jpg')
 pygame.display.set_icon(Icon)
 
@@ -45,6 +46,10 @@ if image_filenames:
     image_first_letter = selected_image_filename[0].upper()  # Get the first letter of the image filename
 else:
     image = None
+    
+# Load sound files
+wrong_sound = pygame.mixer.Sound('resources/star/wrong_sound.mp3')
+hooray_sound = pygame.mixer.Sound('resources/star/hooray_sound.mp3')
 
 # Define colors
 white = (162,228,184)
@@ -286,8 +291,10 @@ while running:
                     if button.text == image_first_letter:
                         button.color = green  # Change button color to green when clicked
                         selected_folder_name = selected_image_filename.split('.')[0]  # Use image name as folder name
+                        hooray_sound.play()  # Play hooray sound for correct button
                     else:
                         button.color = red  # Change button color to red when clicked
+                        wrong_sound.play()  # Play wrong sound for incorrect button
                         
         elif event.type == pygame.VIDEORESIZE:
             # Update screen dimensions
