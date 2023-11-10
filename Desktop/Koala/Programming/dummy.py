@@ -3,8 +3,8 @@ import os
 import random
 
 pygame.init()
-pygame.display.set_caption('Letter Reveal v.1.0')
-Icon = pygame.image.load('resources/icon/reveal.png')
+pygame.display.set_caption('Letter Pop v.1.0')
+Icon = pygame.image.load('resources/icon/balloon.png')
 pygame.display.set_icon(Icon)
 
 # Set up display
@@ -12,82 +12,50 @@ screen_width = 1280
 screen_height = 720
 screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
 
-letter_index = 0
-scaler = 1
-background = (132, 148, 131)
-hide_color = (255, 219, 88)
+# Load the background image
+background_img = pygame.image.load("resources/background/sky.png")
+background_img = pygame.transform.scale(background_img, (screen_width, screen_height))
 
-# Load letters from the text file
-with open("resources/reveal/letters.txt", "r") as file:
-    letters = [char.upper() for char in file.read() if char.isalpha()]
+# Variables
+blue = (0, 160, 255)
+pop_sound = pygame.mixer.Sound('resources/letter_pop/pop_sound.mp3')
 
-# Load alphabet pictures and resize them to fit the whole square
-square_size = min(screen_width, screen_height) // int(scaler)  # Size of the whole square
-alphabet_images = {}
-for letter in letters:
-    image_path = os.path.join("resources/rustic_alphabet", f"{letter}.png")
-    image = pygame.image.load(image_path)
-    image = pygame.transform.scale(image, (square_size, square_size))  # Resize the image
-    alphabet_images[letter] = image
+# Function to read letters from file
+def read_letters_from_file(file_path):
+    with open(file_path, 'r') as file:
+        letters = file.read().splitlines()
+    return letters
 
-# Set up rectangles
-rect_count = 3  # Number of rectangles in each direction
-hide_rectangles = []
-
-# Create "Next" button
-next_button = pygame.Rect(screen_width - 150, 10, 140, 50)
-
-# Create "+/-" button
-case_change_button = pygame.Rect(10, 10, 140, 50)
-
-def setup_rectangles(square_size):
-    rect_size = square_size // rect_count
-    return [
-        pygame.Rect(x, y, rect_size, rect_size)
-        for x in range(screen_width // 2 - square_size // 2, screen_width // 2 + square_size // 2, rect_size)
-        for y in range(screen_height // 2 - square_size // 2, screen_height // 2 + square_size // 2, rect_size)
-    ]
-
-def update_alphabet_images():
+# Function to generate blue circles with unique letters
+def generate_blue_circles(letters):
+    circles = []
     for letter in letters:
-        image = pygame.image.load(current_image_path + f"/{letter}.png")
-        image = pygame.transform.scale(image, (square_size, square_size))
-        alphabet_images[letter] = image
-
-def game_function():
-    screen.fill(background)
-    
-    # Draw image
-    current_letter = letters[letter_index]
-    image = alphabet_images[current_letter]
-    image_rect = image.get_rect(center=(screen_width // 2, screen_height // 2))
-    screen.blit(image, image_rect.topleft)
-    
-    # Draw hide rectangles with black border
-    border_width = 2  # Adjust this value as needed
-    for rect in hide_rectangles:
-        pygame.draw.rect(screen, (0, 0, 0), rect)  # Draw black border
-        pygame.draw.rect(screen, hide_color, rect.inflate(-border_width, -border_width))  # Draw inner rectangle
-    
-    # Draw next button
-    pygame.draw.rect(screen, (0, 128, 128), next_button)
-    font = pygame.font.Font(None, 36)
-    text = font.render("Next", True, (250, 243, 221))
-    text_rect = text.get_rect(center=next_button.center)
-    screen.blit(text, text_rect.topleft)
-    
-    # Draw case change button
-    pygame.draw.rect(screen, (0, 128, 128), case_change_button)
-    text = font.render("+/-", True, (250, 243, 221))
-    text_rect = text.get_rect(center=case_change_button.center)
-    screen.blit(text, text_rect.topleft)
-    
-    pygame.display.flip()
+        radius = 30
+        while True:
+            x = random.randint(radius, screen_width - radius)
+            y = random.randint(radius, screen_height - radius)
+            # Check for collisions with existing circles
+            collision = False
+            for other_circle in circles:
+                other_x, other_y = other_circle["position"]
+                other_radius = other_circle["radius"]
+                distance = ((x - other_x)**2 + (y - other_y)**2)**0.5
+                if distance < radius + other_radius:
+                    collision = True
+                    break
+            if not collision:
+                circles.append({"position": (x, y), "radius": radius, "letter": letter})
+                break
+    return circles
 
 # Main loop
 running = True
-hide_rectangles = setup_rectangles(square_size)
-current_image_path = "resources/rustic_alphabet"
+
+# Load letters from file
+letters = read_letters_from_file("resources/letter_pop/poppers.txt")
+
+# Generate blue circles with unique letters
+blue_circles = generate_blue_circles(letters)
 
 while running:
     for event in pygame.event.get():
@@ -95,33 +63,41 @@ while running:
             running = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
             mouse_pos = pygame.mouse.get_pos()
-            
-            for rect in hide_rectangles:
-                if rect.collidepoint(mouse_pos):
-                    hide_rectangles.remove(rect)
-                    break  # Only remove one rectangle per click
-            
-            if next_button.collidepoint(mouse_pos):
-                letter_index = (letter_index + 1) % len(letters)
-                hide_rectangles = setup_rectangles(square_size)  # Update hide_rectangles
-            
-            if case_change_button.collidepoint(mouse_pos):
-                if current_image_path == "resources/rustic_alphabet":
-                    current_image_path = "resources/red_alphabet"
-                else:
-                    current_image_path = "resources/rustic_alphabet"
-                update_alphabet_images()
-                
+
+            # Check if the mouse click is within any circle
+            for circle_data in blue_circles:
+                x, y = circle_data["position"]
+                radius = circle_data["radius"]
+                if (x - mouse_pos[0])**2 + (y - mouse_pos[1])**2 <= radius**2:
+                    # Remove the clicked circle from the list
+                    blue_circles.remove(circle_data)
+                    pop_sound.play()
+                    break  # Stop searching for other circles
         elif event.type == pygame.VIDEORESIZE:
-            # Update screen dimensions
-            screen_width = event.w
-            screen_height = event.h
+            screen_width, screen_height = event.size
             screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
-            square_size = min(screen_width, screen_height) // int(scaler)
-            hide_rectangles = setup_rectangles(square_size)  # Update hide_rectangles
-            next_button = pygame.Rect(screen_width - 150, 10, 140, 50)  # Update next_button position
-            case_change_button = pygame.Rect(10, 10, 140, 50)  # Update case_change_button position
-    
-    game_function()
-    
+            background_img = pygame.transform.scale(background_img, (screen_width, screen_height))
+            # Recalculate the positions of the circles when the window is resized
+            blue_circles = generate_blue_circles(letters)
+
+    # Draw blue circles with letters on the screen
+    screen.fill((255, 255, 255))  # Fill screen with white
+    screen.blit(background_img, (0, 0))
+    for circle_data in blue_circles:
+        x, y = circle_data["position"]
+        radius = circle_data["radius"]
+        letter = circle_data["letter"]
+
+        # Draw the blue circle
+        pygame.draw.circle(screen, blue, (x, y), radius)
+
+        # Draw the letter in the center of the circle
+        font = pygame.font.Font(None, 50)
+        text = font.render(letter, True, (255, 255, 255))
+        text_rect = text.get_rect(center=(x, y))
+        screen.blit(text, text_rect)
+
+    # Update the display
+    pygame.display.flip()
+
 pygame.quit()

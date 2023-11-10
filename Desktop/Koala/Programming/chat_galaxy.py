@@ -27,7 +27,7 @@ def main():
     global WINDOW_WIDTH, WINDOW_HEIGHT  # Marking variables as global
 
     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
-    pygame.display.set_caption("Resizable Colorful Rows of Rectangles")
+    pygame.display.set_caption("Alphabet Galaxy v.1.0")
 
     clock = pygame.time.Clock()
 
