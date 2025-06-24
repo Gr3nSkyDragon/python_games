@@ -9,7 +9,21 @@ screen_width = 1280
 screen_height = 720
 screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
 pygame.display.set_caption("Scuba Reader v.1.2.5")
-Icon = pygame.image.load('resources/icon/snorkel.png')
+
+# Get the correct path for bundled data
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+    
+# Load icon using resource_path
+icon_path = resource_path('resources/icon/snorkel.png')
+Icon = pygame.image.load(icon_path)
 pygame.display.set_icon(Icon)
 
 # Load the underwater background image
