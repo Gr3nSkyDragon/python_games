@@ -4,8 +4,24 @@ import random
 
 pygame.init()
 pygame.display.set_caption('Letter Reveal v.1.0')
-Icon = pygame.image.load('resources/icon/reveal.png')
+
+# Get the correct path for bundled data
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+    
+# Load icon using resource_path
+icon_path = resource_path('resources/icon/reveal.png')
+Icon = pygame.image.load(icon_path)
 pygame.display.set_icon(Icon)
+
+clock = pygame.time.Clock()
 
 # Set up display
 screen_width = 1280
@@ -83,6 +99,8 @@ def game_function():
     screen.blit(text, text_rect.topleft)
     
     pygame.display.flip()
+    
+    clock.tick(60)
 
 # Main loop
 running = True

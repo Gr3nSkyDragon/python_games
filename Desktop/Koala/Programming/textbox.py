@@ -16,8 +16,24 @@ NEW_WORD_BTN_COLOR = (216, 141, 14)  # This color is for the "New Word" button
 screen_width, screen_height = 1280, 720
 screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
 pygame.display.set_caption('Word Maker v.2.0')
-Icon = pygame.image.load('resources/icon/robot.png')
+
+# Get the correct path for bundled data
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+    
+# Load icon using resource_path
+icon_path = resource_path('resources/icon/robot.png')
+Icon = pygame.image.load(icon_path)
 pygame.display.set_icon(Icon)
+
+clock = pygame.time.Clock()
 background_image = pygame.image.load('resources/background/television.jpg')  
 background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
 
@@ -268,6 +284,8 @@ def main(font):
 
         # Update the display
         pygame.display.flip()
+        
+        clock.tick(60)
 
     pygame.quit()
 

@@ -2,10 +2,27 @@ import pygame
 import os
 import random
 
+# Get the correct path for bundled data
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
 pygame.init()
 pygame.display.set_caption('Letter Pop v.1.0')
-Icon = pygame.image.load('resources/icon/balloon.png')
+
+# Load icon using resource_path
+icon_path = resource_path('resources/icon/balloon.png')
+Icon = pygame.image.load(icon_path)
 pygame.display.set_icon(Icon)
+
+clock = pygame.time.Clock()
+font = pygame.font.Font(None, 50)
 
 # Set up display
 screen_width = 1280
@@ -92,12 +109,13 @@ while running:
         pygame.draw.circle(screen, blue, (x, y), radius)
 
         # Draw the letter in the center of the circle
-        font = pygame.font.Font(None, 50)
         text = font.render(letter, True, (255, 255, 255))
         text_rect = text.get_rect(center=(x, y))
         screen.blit(text, text_rect)
 
     # Update the display
     pygame.display.flip()
+
+    clock.tick(60)  # limits FPS to 60
 
 pygame.quit()

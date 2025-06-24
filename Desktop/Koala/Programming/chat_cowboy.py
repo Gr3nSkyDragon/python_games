@@ -3,11 +3,26 @@ import sys
 import random
 import os
 
+# Get the correct path for bundled data
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
 # Window boilerplate
 pygame.init()
-pygame.display.set_caption('Cowboy Numbers v.1.2')
-Icon = pygame.image.load('resources/icon/cowboy_hat.png')
+pygame.display.set_caption('Cowboy Numbers v.1.5')
+
+# Load icon using resource_path
+icon_path = resource_path('resources/icon/cowboy_hat.png')
+Icon = pygame.image.load(icon_path)
 pygame.display.set_icon(Icon)
+
 pygame.font.init()
 game_font_size = int(0.5 * pygame.display.Info().current_h)
 game_font = pygame.font.SysFont('Calistoga', game_font_size)
@@ -45,7 +60,9 @@ shoot_text = smallfont.render('Shoot!', True, color)
 def numbergen():
     with open("resources/cowboy/cowboy.txt", "r") as file:
         number = [line.strip() for line in file.readlines()]
-    rand_number = random.randint(0, 9)
+    if not number:  # Handle empty file case
+        return "00"  # Or some default value
+    rand_number = random.randint(0, len(number) - 1)  # Use length of list as max
     number_test = number[rand_number]
     return number_test
 

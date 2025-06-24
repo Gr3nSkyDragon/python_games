@@ -26,8 +26,24 @@ princess_img = pygame.image.load('resources/princess/princess.png')
 # Initialize Pygame screen
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
 pygame.display.set_caption('Find the Princess!')
-Icon = pygame.image.load('resources/icon/princess_icon.png')
+
+# Get the correct path for bundled data
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+    
+# Load icon using resource_path
+icon_path = resource_path('resources/icon/princess_icon.png')
+Icon = pygame.image.load(icon_path)
 pygame.display.set_icon(Icon)
+
+clock = pygame.time.Clock()
 
 def resize_game(width, height):
     global RECT_WIDTH, RECT_HEIGHT, princess_img, SCREEN_WIDTH, SCREEN_HEIGHT
@@ -134,6 +150,7 @@ def main():
         screen.fill(BACKGROUND)  # Fill the screen with soft yellow
         draw_grid(rectangles_clicked)
         pygame.display.flip()
+        clock.tick(60)
 
     pygame.quit()
 
