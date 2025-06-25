@@ -15,7 +15,8 @@ def resource_path(relative_path):
 # Initialize Pygame
 pygame.init()
 pygame.mixer.init()
-pygame.display.set_caption('Star CVC v.2.0')
+pygame.display.set_caption('Star CVC v.2.1')
+clock = pygame.time.Clock()
 
 # Load icon
 try:
@@ -110,9 +111,13 @@ class Button:
         text_rect = text_surface.get_rect(center=self.rect.center)
         screen.blit(text_surface, text_rect)
 
-def generate_random_consonant(exclude_letter):
-    consonants = [c for c in string.ascii_uppercase if c not in 'AEIOU' and c != exclude_letter]
-    return random.choice(consonants) if consonants else 'B'
+def generate_random_consonant(exclude_letter, used_letters):
+    """Generate a random consonant that hasn't been used yet"""
+    consonants = [c for c in string.ascii_uppercase 
+                 if c not in 'AEIOU' 
+                 and c != exclude_letter
+                 and c not in used_letters]
+    return random.choice(consonants) if consonants else 'B'  # Fallback
 
 def load_random_image():
     global image, image_first_letter, current_word, hidden_word, revealed
@@ -138,17 +143,29 @@ def load_random_image():
 def create_consonant_buttons():
     buttons = []
     button_spacing = (screen_width - 4 * (screen_width * button_width_percent)) / 5
-    random_letters = [generate_random_consonant(image_first_letter) for _ in range(3)]
-    random_letters.append(generate_random_consonant(image_first_letter))
+    used_letters = []  # Track which letters we've already used
     
+    # Generate 3 unique random letters (excluding the correct one)
+    for _ in range(3):
+        new_letter = generate_random_consonant(image_first_letter, used_letters)
+        used_letters.append(new_letter)
+    
+    # Add the correct letter to our pool
+    used_letters.append(image_first_letter)
+    
+    # Randomize the order
+    random.shuffle(used_letters)
+    
+    # Create buttons with all letters
     for i in range(4):
         x = button_spacing * (i + 1) + (screen_width * button_width_percent) * i
         y = screen_height * button_y_percent - (screen_height * button_height_percent) / 2
-        buttons.append(Button(x, y, random_letters[i]))
+        buttons.append(Button(x, y, used_letters[i]))
     
-    random_button_index = random.randint(0, 3)
-    buttons[random_button_index].text = image_first_letter
-    return buttons, random_button_index
+    # Find which button has the correct answer
+    correct_button_index = used_letters.index(image_first_letter)
+    
+    return buttons, correct_button_index
 
 def update_folder(index):
     global selected_folder_name, selected_subfolder_path, image_first_letter, image
@@ -164,9 +181,17 @@ random_consonant_buttons, random_button_index = create_consonant_buttons()
 # Navigation buttons
 prev_button = Button(screen_width * 0.05, screen_height * 0.1, "<", color=(200, 200, 200))
 next_button = Button(screen_width * 0.15, screen_height * 0.1, ">", color=(200, 200, 200))
-next_image_button = Button(screen_width - (screen_width * button_width_percent) - 20, 
-                          screen_height - (screen_height * button_height_percent) - 20, 
-                          "Next")
+
+# Replace your current next_image_button initialization with:
+def create_next_button():
+    return Button(
+        screen_width - (screen_width * button_width_percent) - 20,
+        screen_height - (screen_height * button_height_percent) - 20,
+        "Next"
+    )
+
+# Initialize it
+next_image_button = create_next_button()
 
 # Main game loop
 running = True
@@ -207,6 +232,7 @@ while running:
             screen_width, screen_height = event.w, event.h
             screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
             random_consonant_buttons, random_button_index = create_consonant_buttons()
+            next_image_button = create_next_button() 
     
     # Render
     screen.fill(white)
@@ -232,6 +258,7 @@ while running:
     next_image_button.draw()
     
     pygame.display.flip()
+    clock.tick(60)
 
 pygame.quit()
 sys.exit()
