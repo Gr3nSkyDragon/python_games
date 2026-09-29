@@ -58,10 +58,21 @@ case_change_button = pygame.Rect(10, 10, 140, 50)
 
 def setup_rectangles(square_size):
     rect_size = square_size // rect_count
+    
+    # Calculate the top-left corner of the square
+    square_x = screen_width // 2 - square_size // 2
+    square_y = screen_height // 2 - square_size // 2
+    
+    # Generate exactly rect_count x rect_count rectangles
     return [
-        pygame.Rect(x, y, rect_size, rect_size)
-        for x in range(screen_width // 2 - square_size // 2, screen_width // 2 + square_size // 2, rect_size)
-        for y in range(screen_height // 2 - square_size // 2, screen_height // 2 + square_size // 2, rect_size)
+        pygame.Rect(
+            square_x + x * rect_size, 
+            square_y + y * rect_size, 
+            rect_size, 
+            rect_size
+        )
+        for x in range(rect_count)
+        for y in range(rect_count)
     ]
 
 def update_alphabet_images():

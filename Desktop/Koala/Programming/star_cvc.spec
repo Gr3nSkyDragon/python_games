@@ -5,7 +5,7 @@ a = Analysis(
     ['star_cvc.py'],
     pathex=[],
     binaries=[],
-    datas=[('resources/icon/star.jpg', 'resources/icon'), ('resources/star/wrong_sound.mp3', 'resources/star'), ('resources/star/hooray_sound.mp3', 'resources/star'), ('resources/star/families', 'resources/star/families')],
+    datas=[('resources/icon/star.ico', 'icon'), ('resources/icon/star.jpg', 'icon'), ('resources/star/wrong_sound.mp3', 'resources/star'), ('resources/star/hooray_sound.mp3', 'resources/star')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

@@ -2,7 +2,16 @@ import pygame
 import os
 import random
 import string
+import pyttsx3
 import sys
+
+# Build EXE command: 
+#pyinstaller --clean --onefile --icon=resources/icon/star.ico 
+#--add-data "resources/icon/star.ico;icon" 
+#--add-data "resources/icon/star.jpg;icon" 
+#--add-data "resources/star/wrong_sound.mp3;resources/star" 
+#--add-data "resources/star/hooray_sound.mp3;resources/star" 
+#--noconsole star_cvc.py
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -12,11 +21,25 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
+# Initialize text-to-speech engine
+def init_tts():
+    try:
+        engine = pyttsx3.init()
+        voices = engine.getProperty('voices')
+        engine.setProperty('rate', 170)
+        engine.setProperty('volume', 0.9)
+        engine.setProperty('voice', voices[1].id)
+        return engine
+    except Exception as e:
+        print(f"Error initializing text-to-speech: {e}")
+        return None 
+
 # Initialize Pygame
 pygame.init()
 pygame.mixer.init()
-pygame.display.set_caption('Star CVC v.2.1')
+pygame.display.set_caption('Star CVC v.2.2')
 clock = pygame.time.Clock()
+tts_engine = init_tts()
 
 # Load icon
 try:
@@ -203,7 +226,16 @@ while running:
         elif event.type == pygame.MOUSEBUTTONDOWN:
             mouse_pos = pygame.mouse.get_pos()
             
-            if prev_button.rect.collidepoint(mouse_pos) and index > 0:
+            if image and image.get_rect(topleft=(screen_width / 2 - image.get_width() / 2, 
+                                               screen_height * image_y_percent - image.get_height() / 2)).collidepoint(mouse_pos):
+                if tts_engine:
+                    try:
+                        tts_engine.say(current_word)
+                        tts_engine.runAndWait()
+                    except Exception as e:
+                        print(f"Error with text-to-speech: {e}")
+            
+            elif prev_button.rect.collidepoint(mouse_pos) and index > 0:
                 index -= 1
                 random_consonant_buttons, random_button_index = update_folder(index)
                 
