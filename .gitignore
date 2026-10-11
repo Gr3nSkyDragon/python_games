@@ -1,0 +1,7 @@
+# PyInstaller intermediate and output folders (finished exes live in Games/)
+build/
+dist/
+
+# Python bytecode
+__pycache__/
+*.pyc
