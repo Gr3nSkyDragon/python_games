@@ -14,3 +14,6 @@ Games/
 
 # Phonicsmon save file (the game creates a fresh one if missing)
 phonixmons_save.dat
+
+# Full-size originals of shrunk images (tools/shrink_images.py); zip for releases
+originals/
