@@ -1,23 +1,13 @@
 import pygame
 import os
 import random
-
-# Get the correct path for bundled data
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
+from paths import resource, editable
 
 pygame.init()
 pygame.display.set_caption('Letter Pop v.1.0')
 
-# Load icon using resource_path
-icon_path = resource_path('resources/icon/balloon.png')
+# Load window icon
+icon_path = resource('icon', 'balloon.png')
 Icon = pygame.image.load(icon_path)
 pygame.display.set_icon(Icon)
 
@@ -30,12 +20,12 @@ screen_height = 720
 screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
 
 # Load the background image
-background_img = pygame.image.load("resources/background/sky.png")
+background_img = pygame.image.load(resource('background', 'sky.png'))
 background_img = pygame.transform.scale(background_img, (screen_width, screen_height))
 
 # Variables
 blue = (0, 160, 255)
-pop_sound = pygame.mixer.Sound('resources/letter_pop/pop_sound.mp3')
+pop_sound = pygame.mixer.Sound(resource('letter_pop', 'pop_sound.mp3'))
 
 # Function to read letters from file
 def read_letters_from_file(file_path):
@@ -69,7 +59,7 @@ def generate_blue_circles(letters):
 running = True
 
 # Load letters from file
-letters = read_letters_from_file("resources/letter_pop/poppers.txt")
+letters = read_letters_from_file(editable('letter_pop', 'poppers.txt'))
 
 # Generate blue circles with unique letters
 blue_circles = generate_blue_circles(letters)

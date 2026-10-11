@@ -1,5 +1,6 @@
 import pygame
 import random
+from paths import resource, editable
 
 # Initialize Pygame
 pygame.init()
@@ -10,24 +11,13 @@ screen_height = 720
 screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
 pygame.display.set_caption("Scuba Reader v.1.2.5")
 
-# Get the correct path for bundled data
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
-    
-# Load icon using resource_path
-icon_path = resource_path('resources/icon/snorkel.png')
+# Load window icon
+icon_path = resource('icon', 'snorkel.png')
 Icon = pygame.image.load(icon_path)
 pygame.display.set_icon(Icon)
 
 # Load the underwater background image
-background_image = pygame.image.load("resources/background/underwater.png")
+background_image = pygame.image.load(resource('background', 'underwater.png'))
 background_image_original = background_image.copy()
 
 # Define text object class
@@ -58,7 +48,7 @@ class TextObject(pygame.sprite.Sprite):
 all_text_objects = pygame.sprite.Group()
 
 # Read texts from the .txt file
-with open("resources/scuba/scuba_words.txt", "r") as file:
+with open(editable('scuba', 'scuba_words.txt'), "r") as file:
     texts = [line.strip() for line in file.readlines()]
 
 # Define the font
@@ -75,7 +65,7 @@ for i in range(num_objects):
     all_text_objects.add(text_obj)
 
 # Load and resize the scuba image
-scuba_image = pygame.image.load("resources/scuba/scuba.png")
+scuba_image = pygame.image.load(resource('scuba', 'scuba.png'))
 scuba_image_original = scuba_image.copy()
 
 # Scaling factors for scuba image

@@ -1,22 +1,12 @@
 import pygame
 import random
+from paths import resource
 
 # Initialize Pygame
 pygame.init()
 
-# Get the correct path for bundled data
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
-    
-# Load icon using resource_path
-icon_path = resource_path('resources/icon/telescope.png')
+# Load window icon
+icon_path = resource('icon', 'telescope.png')
 Icon = pygame.image.load(icon_path)
 pygame.display.set_icon(Icon)
 
@@ -48,7 +38,7 @@ def main():
     clock = pygame.time.Clock()
 
     # Load the background image
-    background_img = pygame.image.load("resources/background/galaxy.jpg")
+    background_img = pygame.image.load(resource('background', 'galaxy.jpg'))
     background_img = pygame.transform.scale(background_img, (WINDOW_WIDTH, WINDOW_HEIGHT))
 
     # Calculate the starting y-coordinate for all rows of rectangles

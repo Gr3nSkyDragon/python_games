@@ -2,24 +2,15 @@ import os
 import sys
 import pygame
 import random
-
-# Resource path handler for PyInstaller
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
+from paths import resource
 
 # Initialize pygame
 pygame.init()
 pygame.display.set_caption('Alphabet Blaster v.1.5')
 
-# Load icon using resource_path
+# Load window icon
 try:
-    icon_path = resource_path(os.path.join('resources', 'icon', 'apple.png'))
+    icon_path = resource('icon', 'apple.png')
     Icon = pygame.image.load(icon_path)
     pygame.display.set_icon(Icon)
 except Exception as e:

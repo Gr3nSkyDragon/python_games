@@ -2,24 +2,14 @@ import pygame
 import sys
 import random
 import os
-
-# Get the correct path for bundled data
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
+from paths import resource, editable
 
 # Window boilerplate
 pygame.init()
 pygame.display.set_caption('Cowboy Numbers v.1.5')
 
-# Load icon using resource_path
-icon_path = resource_path('resources/icon/cowboy_hat.png')
+# Load window icon
+icon_path = resource('icon', 'cowboy_hat.png')
 Icon = pygame.image.load(icon_path)
 pygame.display.set_icon(Icon)
 
@@ -36,7 +26,7 @@ color = (255, 255, 255)
 color_light = (170, 170, 170)
 color_dark = (100, 100, 100)
 background = (40, 40, 120)
-background_image = pygame.image.load('resources/background/desert_background.jpg')  # Image by pikisuperstar on Freepik
+background_image = pygame.image.load(resource('background', 'desert_background.jpg'))  # Image by pikisuperstar on Freepik
 background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
 
 # Draw buttons with relative positions
@@ -58,7 +48,7 @@ shoot_text = smallfont.render('Shoot!', True, color)
 
 # Game engine
 def numbergen():
-    with open("resources/cowboy/cowboy.txt", "r") as file:
+    with open(editable('cowboy', 'cowboy.txt'), "r") as file:
         number = [line.strip() for line in file.readlines()]
     if not number:  # Handle empty file case
         return "00"  # Or some default value

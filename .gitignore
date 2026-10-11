@@ -1,7 +1,13 @@
-# PyInstaller intermediate and output folders (finished exes live in Games/)
+# PyInstaller work folders
 build/
 dist/
 
 # Python bytecode
 __pycache__/
 *.pyc
+
+# Built games: run build.cmd, then zip Games/ for a release
+Games/
+
+# Local Python environment created by build.cmd
+.venv/

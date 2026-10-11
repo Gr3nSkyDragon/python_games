@@ -1,5 +1,6 @@
 import pygame
 import random
+from paths import resource, editable
 
 pygame.init()
 
@@ -21,25 +22,14 @@ GRID_ROWS = 3
 GRID_COLS = 6
 
 # Load the princess image
-princess_img = pygame.image.load('resources/princess/princess.png')
+princess_img = pygame.image.load(resource('princess', 'princess.png'))
 
 # Initialize Pygame screen
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
 pygame.display.set_caption('Find the Princess!')
 
-# Get the correct path for bundled data
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
-    
-# Load icon using resource_path
-icon_path = resource_path('resources/icon/princess_icon.png')
+# Load window icon
+icon_path = resource('icon', 'princess_icon.png')
 Icon = pygame.image.load(icon_path)
 pygame.display.set_icon(Icon)
 
@@ -52,7 +42,7 @@ def resize_game(width, height):
     SCREEN_HEIGHT = height
     RECT_WIDTH = SCREEN_WIDTH // GRID_COLS
     RECT_HEIGHT = SCREEN_HEIGHT // GRID_ROWS
-    princess_img = pygame.image.load('resources/princess/princess.png')  # Reload the original image
+    princess_img = pygame.image.load(resource('princess', 'princess.png'))  # Reload the original image
     princess_img = pygame.transform.scale(princess_img, (RECT_WIDTH - 10, RECT_HEIGHT - 10))
 
 def center_text(surface, x, y):
@@ -66,7 +56,7 @@ def center_text(surface, x, y):
     return center_x, center_y
 
 # Load the hidden letters from the text file
-with open('resources/princess/hidden_content.txt') as f:
+with open(editable('princess', 'hidden_content.txt')) as f:
     hidden_letters = f.read().splitlines()
 
 # Shuffle the hidden letters and place the princess randomly among them
@@ -74,7 +64,7 @@ random.shuffle(hidden_letters)
 hidden_letters.insert(random.randint(0, GRID_ROWS * GRID_COLS - 1), 'princess')
 
 # Load the labels from the text file
-with open('resources/princess/rectangle_content.txt') as f:
+with open(editable('princess', 'rectangle_content.txt')) as f:
     labels = f.read().splitlines()
 
 # Shuffle the labels and assign them to rectangles
@@ -124,7 +114,7 @@ def main():
 
     RECT_WIDTH = SCREEN_WIDTH // GRID_COLS
     RECT_HEIGHT = SCREEN_HEIGHT // GRID_ROWS
-    princess_img = pygame.image.load('resources/princess/princess.png')  # Load the original image
+    princess_img = pygame.image.load(resource('princess', 'princess.png'))  # Load the original image
     princess_img = pygame.transform.scale(princess_img, (RECT_WIDTH - 10, RECT_HEIGHT - 10))
 
     running = True

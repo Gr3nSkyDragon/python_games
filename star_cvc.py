@@ -4,22 +4,7 @@ import random
 import string
 import pyttsx3
 import sys
-
-# Build EXE command: 
-#pyinstaller --clean --onefile --icon=resources/icon/star.ico 
-#--add-data "resources/icon/star.ico;icon" 
-#--add-data "resources/icon/star.jpg;icon" 
-#--add-data "resources/star/wrong_sound.mp3;resources/star" 
-#--add-data "resources/star/hooray_sound.mp3;resources/star" 
-#--noconsole star_cvc.py
-
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
+from paths import resource
 
 # Initialize text-to-speech engine
 def init_tts():
@@ -43,7 +28,7 @@ tts_engine = init_tts()
 
 # Load icon
 try:
-    icon_path = resource_path(os.path.join('resources', 'icon', 'star.jpg'))
+    icon_path = resource('icon', 'star.jpg')
     Icon = pygame.image.load(icon_path)
     pygame.display.set_icon(Icon)
 except Exception as e:
@@ -54,26 +39,9 @@ screen_width = 1280
 screen_height = 720
 screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
 
-# Dynamic resource location
-def get_resource_base():
-    if getattr(sys, 'frozen', False):
-        return os.path.dirname(sys.executable)
-    return os.path.dirname(os.path.abspath(__file__))
+phonics_words_folder = resource('star', 'families')
 
-def get_phonics_folder():
-    base_path = get_resource_base()
-    possible_paths = [
-        os.path.join(base_path, "resources", "star", "families"),
-        os.path.join(base_path, "families"),
-    ]
-    for path in possible_paths:
-        if os.path.exists(path):
-            return path
-    return None
-
-phonics_words_folder = get_phonics_folder()
-
-if phonics_words_folder is None:
+if not os.path.isdir(phonics_words_folder):
     print("Warning: Could not find phonics words folder")
     folder_names = []
 else:
@@ -96,8 +64,8 @@ revealed = False    # Track if word is fully revealed
 
 # Load sounds
 try:
-    wrong_sound = pygame.mixer.Sound(resource_path(os.path.join('resources', 'star', 'wrong_sound.mp3')))
-    hooray_sound = pygame.mixer.Sound(resource_path(os.path.join('resources', 'star', 'hooray_sound.mp3')))
+    wrong_sound = pygame.mixer.Sound(resource('star', 'wrong_sound.mp3'))
+    hooray_sound = pygame.mixer.Sound(resource('star', 'hooray_sound.mp3'))
 except Exception as e:
     print(f"Couldn't load sound files: {e}")
     wrong_sound = None

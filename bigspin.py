@@ -3,6 +3,7 @@ import sys
 import random
 import math
 from pygame import gfxdraw
+from paths import resource
 
 # Initialize pygame
 pygame.init()
@@ -12,18 +13,8 @@ INIT_WIDTH, INIT_HEIGHT = 1000, 600
 screen = pygame.display.set_mode((INIT_WIDTH, INIT_HEIGHT), pygame.RESIZABLE)
 pygame.display.set_caption("Random Wheel Spinner v.1.0")
 
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
-
 # Then modify your icon loading code:
-icon_path = resource_path(os.path.join('resources', 'icon', 'wheel.png'))
+icon_path = resource('icon', 'wheel.png')
 icon = pygame.image.load(icon_path).convert_alpha()
 pygame.display.set_icon(icon)
 

@@ -6,6 +6,7 @@ import string
 import pyttsx3
 import pickle
 from pygame.time import Clock
+from paths import resource, local
 
 # Initialize pygame
 pygame.init()
@@ -60,7 +61,7 @@ dictionary_scroll_dragging = False
 encounter_img_size = (150, 150)  # Base size, will be scaled
 original_images = {}  # Store original unscaled images
 scaled_images = {}    # Store scaled versions
-SAVE_FILE = 'phonixmons_save.dat'
+SAVE_FILE = local('phonixmons_save.dat')
 
 # Base dimensions (reference size)
 BASE_WIDTH = 800
@@ -86,7 +87,7 @@ dictionary_font = pygame.font.SysFont('Arial', 24)
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE | pygame.HWSURFACE | pygame.DOUBLEBUF)
 pygame.display.set_caption("Phonixmon")
 clock = Clock()
-icon = pygame.image.load('resources/icon/phonics.png').convert_alpha()
+icon = pygame.image.load(resource('icon', 'phonics.png')).convert_alpha()
 pygame.display.set_icon(icon)
 
 # Scaling helper functions
@@ -131,85 +132,85 @@ def load_images():
     global ocean_bg, forest_bg, desert_bg, factory_bg, caught_img
     
     try:
-        if not os.path.exists('resources'):
-            os.makedirs('resources')
-        if not os.path.exists('resources/mon'):
-            os.makedirs('resources/mon')
-        if not os.path.exists('resources/mon/encounters/cvc'):
-            os.makedirs('resources/mon/encounters/cvc')
+        if not os.path.exists(resource()):
+            os.makedirs(resource())
+        if not os.path.exists(resource('mon')):
+            os.makedirs(resource('mon'))
+        if not os.path.exists(resource('mon', 'encounters', 'cvc')):
+            os.makedirs(resource('mon', 'encounters', 'cvc'))
         
         # Load all images with scaled sizes
-        grass_img = pygame.image.load('resources/mon/grass.png').convert_alpha()
+        grass_img = pygame.image.load(resource('mon', 'grass.png')).convert_alpha()
         grass_img = pygame.transform.scale(grass_img, (scale_value(150), scale_value(150)))
         
-        background_img = pygame.image.load('resources/mon/main_background.png').convert_alpha()
+        background_img = pygame.image.load(resource('mon', 'main_background.png')).convert_alpha()
         background_img = pygame.transform.scale(background_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
         
-        backpack_img = pygame.image.load('resources/mon/backpack.png').convert_alpha()
+        backpack_img = pygame.image.load(resource('mon', 'backpack.png')).convert_alpha()
         backpack_img = pygame.transform.scale(backpack_img, (scale_value(60), scale_value(60)))
         
-        battle_bg_img = pygame.image.load('resources/mon/battle_background.png').convert()
+        battle_bg_img = pygame.image.load(resource('mon', 'battle_background.png')).convert()
         battle_bg_img = pygame.transform.scale(battle_bg_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
         
-        dictionary_img = pygame.image.load('resources/mon/dictionary.png').convert_alpha()
+        dictionary_img = pygame.image.load(resource('mon', 'dictionary.png')).convert_alpha()
         dictionary_img = pygame.transform.scale(dictionary_img, (scale_value(100), scale_value(100)))
         
-        inventory_bg_img = pygame.image.load('resources/mon/inventory_background.png').convert()
+        inventory_bg_img = pygame.image.load(resource('mon', 'inventory_background.png')).convert()
         inventory_bg_img = pygame.transform.scale(inventory_bg_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
         
-        ball_img = pygame.image.load('resources/mon/ball.png').convert_alpha()
+        ball_img = pygame.image.load(resource('mon', 'ball.png')).convert_alpha()
         ball_img = pygame.transform.scale(ball_img, (scale_value(100), scale_value(100)))
         
-        player_img = pygame.image.load('resources/mon/player.png').convert_alpha()
+        player_img = pygame.image.load(resource('mon', 'player.png')).convert_alpha()
         player_img = pygame.transform.scale(player_img, (scale_value(120), scale_value(120)))
         player_img_flipped = pygame.transform.flip(player_img, True, False)
         
-        collect_bg_img = pygame.image.load('resources/mon/collect_background.png').convert()
+        collect_bg_img = pygame.image.load(resource('mon', 'collect_background.png')).convert()
         collect_bg_img = pygame.transform.scale(collect_bg_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
         
-        dictionary_bg_img = pygame.image.load('resources/mon/dictionary_background.png').convert()
+        dictionary_bg_img = pygame.image.load(resource('mon', 'dictionary_background.png')).convert()
         dictionary_bg_img = pygame.transform.scale(dictionary_bg_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
         
-        exit_button_img = pygame.image.load('resources/mon/exit_button.png').convert_alpha()
+        exit_button_img = pygame.image.load(resource('mon', 'exit_button.png')).convert_alpha()
         exit_button_img = pygame.transform.scale(exit_button_img, (scale_value(60), scale_value(60)))
         
-        save_button_img = pygame.image.load('resources/mon/save_button.png').convert_alpha()
+        save_button_img = pygame.image.load(resource('mon', 'save_button.png')).convert_alpha()
         save_button_img = pygame.transform.scale(save_button_img, (scale_value(100), scale_value(100)))
         
         # Environment-specific buttons
-        shroom_img = pygame.image.load('resources/mon/shroom.png').convert_alpha()
+        shroom_img = pygame.image.load(resource('mon', 'shroom.png')).convert_alpha()
         shroom_img = pygame.transform.scale(shroom_img, (scale_value(grass_size), scale_value(grass_size)))
         
-        ring_img = pygame.image.load('resources/mon/ring.png').convert_alpha()
+        ring_img = pygame.image.load(resource('mon', 'ring.png')).convert_alpha()
         ring_img = pygame.transform.scale(ring_img, (scale_value(grass_size), scale_value(grass_size)))
         
-        crate_img = pygame.image.load('resources/mon/crate.png').convert_alpha()
+        crate_img = pygame.image.load(resource('mon', 'crate.png')).convert_alpha()
         crate_img = pygame.transform.scale(crate_img, (scale_value(grass_size), scale_value(grass_size)))
         
-        cactus_img = pygame.image.load('resources/mon/cactus.png').convert_alpha()
+        cactus_img = pygame.image.load(resource('mon', 'cactus.png')).convert_alpha()
         cactus_img = pygame.transform.scale(cactus_img, (scale_value(grass_size), scale_value(grass_size)))
         
         # Arrow images
-        arrow_img = pygame.image.load('resources/mon/arrow.png').convert_alpha()
+        arrow_img = pygame.image.load(resource('mon', 'arrow.png')).convert_alpha()
         arrow_img = pygame.transform.scale(arrow_img, (scale_value(small_btn_size), scale_value(small_btn_size)))
         arrow_right = pygame.transform.flip(arrow_img, True, False)
         arrow_down = pygame.transform.rotate(arrow_img, 90)
         arrow_up = pygame.transform.rotate(arrow_img, -90)
         
         # Environment backgrounds
-        ocean_bg = pygame.image.load('resources/mon/ocean_background.png').convert()
+        ocean_bg = pygame.image.load(resource('mon', 'ocean_background.png')).convert()
         ocean_bg = pygame.transform.scale(ocean_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
         
-        forest_bg = pygame.image.load('resources/mon/forest_background.png').convert()
+        forest_bg = pygame.image.load(resource('mon', 'forest_background.png')).convert()
         forest_bg = pygame.transform.scale(forest_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
         
-        desert_bg = pygame.image.load('resources/mon/desert_background.png').convert()
+        desert_bg = pygame.image.load(resource('mon', 'desert_background.png')).convert()
         desert_bg = pygame.transform.scale(desert_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
         
-        factory_bg = pygame.image.load('resources/mon/factory_background.png').convert()
+        factory_bg = pygame.image.load(resource('mon', 'factory_background.png')).convert()
         factory_bg = pygame.transform.scale(factory_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
         
-        caught_img = pygame.image.load('resources/mon/caught.png').convert_alpha()
+        caught_img = pygame.image.load(resource('mon', 'caught.png')).convert_alpha()
         caught_img = pygame.transform.scale(caught_img, (scale_value(40), scale_value(40)))
         
     except Exception as e:
@@ -536,10 +537,10 @@ def load_dictionary_items():
     
     # Define the encounter folders to scan
     encounter_folders = [
-        'resources/mon/encounters/cvc',
-        'resources/mon/encounters/cvce',
-        'resources/mon/encounters/ccvc',
-        'resources/mon/encounters/cvcc'
+        resource('mon', 'encounters', 'cvc'),
+        resource('mon', 'encounters', 'cvce'),
+        resource('mon', 'encounters', 'ccvc'),
+        resource('mon', 'encounters', 'cvcc')
     ]
     
     # Load all image files from all encounter folders
@@ -551,7 +552,7 @@ def load_dictionary_items():
                         name = os.path.splitext(file)[0]
                         dictionary_items.append({
                             'name': name,
-                            'image_path': 'resources/mon/missing.png',  # Default to missing image
+                            'image_path': resource('mon', 'missing.png'),  # Default to missing image
                             'caught': False  # For future catching functionality
                         })
         except Exception as e:
@@ -613,11 +614,11 @@ def load_game():
                         folder = 'cvcc'
                     elif current_state == STATE_FACTORY:
                         for possible_folder in ['cvc', 'cvce', 'ccvc', 'cvcc']:
-                            path = f'resources/mon/encounters/{possible_folder}/{word.lower()}.png'
+                            path = resource('mon', 'encounters', possible_folder, f'{word.lower()}.png')
                             if os.path.exists(path):
                                 folder = possible_folder
                                 break
-                    item['image_path'] = f'resources/mon/encounters/{folder}/{word.lower()}.png'
+                    item['image_path'] = resource('mon', 'encounters', folder, f'{word.lower()}.png')
                     break
                     
         print("Game loaded successfully!")
@@ -750,7 +751,7 @@ def draw_dictionary_screen():
     # Load missing icon if needed
     if 'missing_icon' not in globals():
         try:
-            missing_icon = pygame.image.load('resources/mon/missing.png').convert_alpha()
+            missing_icon = pygame.image.load(resource('mon', 'missing.png')).convert_alpha()
             missing_icon = pygame.transform.scale(missing_icon, (dictionary_image_size, dictionary_image_size))
         except:
             missing_icon = pygame.Surface((dictionary_image_size, dictionary_image_size))
@@ -832,12 +833,12 @@ def preload_resources():
     
     # Create required directories if they don't exist
     required_dirs = [
-        'resources',
-        'resources/mon',
-        'resources/mon/encounters/cvc',
-        'resources/mon/encounters/cvce',
-        'resources/mon/encounters/ccvc',
-        'resources/mon/encounters/cvcc'
+        resource(),
+        resource('mon'),
+        resource('mon', 'encounters', 'cvc'),
+        resource('mon', 'encounters', 'cvce'),
+        resource('mon', 'encounters', 'ccvc'),
+        resource('mon', 'encounters', 'cvcc')
     ]
     
     for i, dir_path in enumerate(required_dirs):
@@ -858,7 +859,7 @@ def preload_resources():
     
     # First count all images to get total for progress bar
     for folder, state in encounter_folders:
-        folder_path = f'resources/mon/encounters/{folder}'
+        folder_path = resource('mon', 'encounters', folder)
         if os.path.exists(folder_path):
             total_images += len([f for f in os.listdir(folder_path) 
                                if f.lower().endswith(('.png', '.jpg', '.jpeg'))])
@@ -866,7 +867,7 @@ def preload_resources():
     # Now actually load the images
     for folder, state in encounter_folders:
         try:
-            folder_path = f'resources/mon/encounters/{folder}'
+            folder_path = resource('mon', 'encounters', folder)
             if os.path.exists(folder_path):
                 for file in os.listdir(folder_path):
                     if file.lower().endswith(('.png', '.jpg', '.jpeg')):
@@ -953,17 +954,17 @@ def rescale_ui_elements():
     
     # List of elements and their base sizes
     elements = [
-        (grass_img, 'resources/mon/grass.png', 150, 150),
-        (backpack_img, 'resources/mon/backpack.png', 60, 60),
-        (dictionary_img, 'resources/mon/dictionary.png', 100, 100),
-        (ball_img, 'resources/mon/ball.png', 100, 100),
-        (exit_button_img, 'resources/mon/exit_button.png', 60, 60),
-        (save_button_img, 'resources/mon/save_button.png', 100, 100),
-        (shroom_img, 'resources/mon/shroom.png', 150, 150),
-        (ring_img, 'resources/mon/ring.png', 150, 150),
-        (crate_img, 'resources/mon/crate.png', 150, 150),
-        (cactus_img, 'resources/mon/cactus.png', 150, 150),
-        (caught_img, 'resources/mon/caught.png', 40, 40)
+        (grass_img, resource('mon', 'grass.png'), 150, 150),
+        (backpack_img, resource('mon', 'backpack.png'), 60, 60),
+        (dictionary_img, resource('mon', 'dictionary.png'), 100, 100),
+        (ball_img, resource('mon', 'ball.png'), 100, 100),
+        (exit_button_img, resource('mon', 'exit_button.png'), 60, 60),
+        (save_button_img, resource('mon', 'save_button.png'), 100, 100),
+        (shroom_img, resource('mon', 'shroom.png'), 150, 150),
+        (ring_img, resource('mon', 'ring.png'), 150, 150),
+        (crate_img, resource('mon', 'crate.png'), 150, 150),
+        (cactus_img, resource('mon', 'cactus.png'), 150, 150),
+        (caught_img, resource('mon', 'caught.png'), 40, 40)
     ]
     
     for i, (img, path, width, height) in enumerate(elements):
@@ -1140,7 +1141,7 @@ while running:
                             elif previous_state_before_encounter == STATE_FACTORY:
                                 # For factory, search all folders
                                 for possible_folder in ['cvc', 'cvce', 'ccvc', 'cvcc']:
-                                    test_path = f'resources/mon/encounters/{possible_folder}/{current_encounter_name.lower()}.png'
+                                    test_path = resource('mon', 'encounters', possible_folder, f'{current_encounter_name.lower()}.png')
                                     if os.path.exists(test_path):
                                         folder = possible_folder
                                         break
@@ -1148,7 +1149,7 @@ while running:
                             if folder is None:
                                 raise ValueError(f"Couldn't determine folder for {current_encounter_name}")
                             
-                            image_path = f'resources/mon/encounters/{folder}/{current_encounter_name.lower()}.png'
+                            image_path = resource('mon', 'encounters', folder, f'{current_encounter_name.lower()}.png')
                             
                             # Verify the image exists
                             if not os.path.exists(image_path):

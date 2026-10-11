@@ -1,23 +1,13 @@
 import pygame
 import os
 import random
+from paths import resource, editable
 
 pygame.init()
 pygame.display.set_caption('Letter Reveal v.1.0')
 
-# Get the correct path for bundled data
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
-    
-# Load icon using resource_path
-icon_path = resource_path('resources/icon/reveal.png')
+# Load window icon
+icon_path = resource('icon', 'reveal.png')
 Icon = pygame.image.load(icon_path)
 pygame.display.set_icon(Icon)
 
@@ -34,14 +24,14 @@ background = (132, 148, 131)
 hide_color = (255, 219, 88)
 
 # Load letters from the text file
-with open("resources/reveal/letters.txt", "r") as file:
+with open(editable('reveal', 'letters.txt'), "r") as file:
     letters = [char.upper() for char in file.read() if char.isalpha()]
 
 # Load alphabet pictures and resize them to fit the whole square
 square_size = min(screen_width, screen_height) // int(scaler)  # Size of the whole square
 alphabet_images = {}
 for letter in letters:
-    image_path = os.path.join("resources/rustic_alphabet", f"{letter}.png")
+    image_path = os.path.join(resource('rustic_alphabet'), f"{letter}.png")
     image = pygame.image.load(image_path)
     image = pygame.transform.scale(image, (square_size, square_size))  # Resize the image
     alphabet_images[letter] = image
@@ -116,7 +106,7 @@ def game_function():
 # Main loop
 running = True
 hide_rectangles = setup_rectangles(square_size)
-current_image_path = "resources/rustic_alphabet"
+current_image_path = resource('rustic_alphabet')
 
 while running:
     for event in pygame.event.get():
@@ -135,10 +125,10 @@ while running:
                 hide_rectangles = setup_rectangles(square_size)  # Update hide_rectangles
             
             if case_change_button.collidepoint(mouse_pos):
-                if current_image_path == "resources/rustic_alphabet":
-                    current_image_path = "resources/red_alphabet"
+                if current_image_path == resource('rustic_alphabet'):
+                    current_image_path = resource('red_alphabet')
                 else:
-                    current_image_path = "resources/rustic_alphabet"
+                    current_image_path = resource('rustic_alphabet')
                 update_alphabet_images()
                 
         elif event.type == pygame.VIDEORESIZE:
