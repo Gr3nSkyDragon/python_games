@@ -11,3 +11,6 @@ Games/
 
 # Local Python environment created by build.cmd
 .venv/
+
+# Phonicsmon save file (the game creates a fresh one if missing)
+phonixmons_save.dat
