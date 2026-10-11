@@ -24,18 +24,18 @@ set "PY=%CD%\.venv\Scripts\python.exe"
 
 if not defined ONLY if exist Games rmdir /s /q Games
 
-rem       script              exe name              icon                editable text files
-call :game A_Blast.py         "Alphabet Blast"      apple.ico           || goto :error
-call :game chat_galaxy.py     "Alphabet Galaxy"     telescope.ico       || goto :error
-call :game chat_cowboy.py     "Cowboy"              cowboy_hat.ico      cowboy\cowboy.txt || goto :error
-call :game chat_princess.py   "Find the Princess"   princess_icon.ico   princess\hidden_content.txt princess\rectangle_content.txt || goto :error
-call :game chat_pop.py        "Letter Pop"          balloon.ico         letter_pop\poppers.txt || goto :error
-call :game Letter_Reveal.py   "Letter Reveal"       reveal.ico          reveal\letters.txt || goto :error
-call :game Phonicsmon.py      "Phonicsmon"          phonics.ico         || goto :error
-call :game bigspin.py         "Random Wheel Spin"   wheel.ico           || goto :error
-call :game chat_scuba.py      "Scuba Reader"        snorkel.ico         scuba\scuba_words.txt || goto :error
-call :game star_cvc.py        "Star CVC"            star.ico            || goto :error
-call :game textbox.py         "Word Maker"          robot.ico           || goto :error
+rem       script                  exe name              icon                editable text files
+call :game alphabet_blast.py      "Alphabet Blast"      apple.ico           || goto :error
+call :game alphabet_galaxy.py     "Alphabet Galaxy"     telescope.ico       || goto :error
+call :game cowboy.py              "Cowboy"              cowboy_hat.ico      cowboy\cowboy.txt || goto :error
+call :game find_the_princess.py   "Find the Princess"   princess_icon.ico   princess\hidden_content.txt princess\rectangle_content.txt || goto :error
+call :game letter_pop.py          "Letter Pop"          balloon.ico         letter_pop\poppers.txt || goto :error
+call :game letter_reveal.py       "Letter Reveal"       reveal.ico          reveal\letters.txt || goto :error
+call :game phonicsmon.py          "Phonicsmon"          phonics.ico         || goto :error
+call :game random_wheel_spin.py   "Random Wheel Spin"   wheel.ico           || goto :error
+call :game scuba_reader.py        "Scuba Reader"        snorkel.ico         scuba\scuba_words.txt || goto :error
+call :game star_cvc.py            "Star CVC"            star.ico            || goto :error
+call :game word_maker.py          "Word Maker"          robot.ico           || goto :error
 
 if defined ONLY if not defined FOUND (
     echo No game named "%ONLY%". Use one of the exe names listed in build.cmd.
