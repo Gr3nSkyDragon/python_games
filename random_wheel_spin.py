@@ -11,7 +11,10 @@ pygame.init()
 # Initial screen dimensions
 INIT_WIDTH, INIT_HEIGHT = 1000, 600
 screen = pygame.display.set_mode((INIT_WIDTH, INIT_HEIGHT), pygame.RESIZABLE)
-pygame.display.set_caption("Random Wheel Spinner v.1.0")
+pygame.display.set_caption("Random Wheel Spinner v.1.1")
+
+# Randomness from the operating system, so spins can't fall into a repeatable pattern
+rng = random.SystemRandom()
 
 # Then modify your icon loading code:
 icon_path = resource('icon', 'wheel.png')
@@ -298,15 +301,17 @@ class WheelSpinner:
         self.colors = self.generate_colors(len(segments))
         self.angle = 0
         self.spinning = False
-        self.deceleration = 0
-        self.final_angle = 0
+        self.start_angle = 0
+        self.spin_distance = 0
+        self.spin_duration = 0
         self.result = None
         self.spin_time = 0
-        self.max_spin_time = 3000
         self.show_result = False
         self.wheel_center = (0, 0)
         self.wheel_radius = 0
         self.spin_button_rect = None
+        self.font_cache = {}
+        self.labels = None  # Rendered segment labels; rebuilt when segments or wheel size change
         self.update_dimensions(INIT_WIDTH, INIT_HEIGHT)
         
     def generate_colors(self, count):
@@ -351,36 +356,40 @@ class WheelSpinner:
             self.angle = 0
             self.result = None
             self.show_result = False
-    
+            self.labels = None
+
     def update_dimensions(self, width, height):
         self.wheel_center = (width // 3, height // 2)
         self.wheel_radius = min(width, height) * 0.33
         self.spin_button_rect = pygame.Rect(
-            width // 3 - 100, 
-            height - 100, 
-            200, 
+            width // 3 - 100,
+            height - 100,
+            200,
             50
         )
-    
+        self.labels = None
+
     def spin(self):
         if not self.spinning:
             self.spinning = True
             self.show_result = False
-            self.deceleration = random.uniform(0.3, 0.6)
             self.spin_time = 0
             self.result = None
-            self.final_angle = abs(random.uniform(9, 23)) * 360  
+            # Spin from wherever the wheel is now: at least 3 full turns, then stop at a uniformly
+            # random point so every segment is equally likely to win
+            self.start_angle = self.angle
+            self.spin_distance = rng.randint(3, 5) * 360 + rng.uniform(0, 360)
+            self.spin_duration = rng.uniform(4000, 5500)
 
     def update(self, dt):
         if self.spinning:
             self.spin_time += dt
-            progress = min(self.spin_time / self.max_spin_time, 1.0)
-            
-            remaining_angle = self.final_angle - self.angle
-            if progress < 1.0:
-                speed = remaining_angle * 0.03 * (1 - progress)
-                self.angle += speed
-            else:
+            progress = min(self.spin_time / self.spin_duration, 1.0)
+            # Ease out: fast at first, slowing smoothly to stop exactly at the target
+            eased = 1 - (1 - progress) ** 3
+            self.angle = self.start_angle + self.spin_distance * eased
+            if progress >= 1.0:
+                self.angle %= 360
                 self.spinning = False
                 self.calculate_result()
                 self.show_result = True
@@ -392,20 +401,39 @@ class WheelSpinner:
         winning_index = int(winning_angle // segment_size) % len(self.segments)
         self.result = self.segments[winning_index]
 
+    def label_font(self, size):
+        if size not in self.font_cache:
+            self.font_cache[size] = pygame.font.SysFont('Arial', size, bold=True)
+        return self.font_cache[size]
+
+    def build_labels(self):
+        """Render each segment's text once, sized to fill its wedge."""
+        count = len(self.segments)
+        r = self.wheel_radius
+        # Labels run along the radius, so the text height has to fit across the wedge
+        wedge_width = 2 * r * 0.45 * math.sin(math.pi / max(count, 2))
+        base_size = max(8, int(min(wedge_width * 0.75, r * 0.16)))
+        max_length = r * 0.68  # from just inside the rim to near the hub
+        self.labels = []
+        for text, color in zip(self.segments, self.colors):
+            # Black or white text, whichever stands out more against the segment color
+            luminance = 0.299 * color[0] + 0.587 * color[1] + 0.114 * color[2]
+            text_color = BLACK if luminance > 140 else WHITE
+            surf = self.label_font(base_size).render(text, True, text_color)
+            if surf.get_width() > max_length:
+                size = max(8, int(base_size * max_length / surf.get_width()))
+                surf = self.label_font(size).render(text, True, text_color)
+            self.labels.append(surf)
+
     def draw(self, surface, width, height):
         angle_to_draw = -self.angle % 360
         pygame.draw.circle(surface, WHEEL_BACKGROUND, self.wheel_center, self.wheel_radius + 5)
 
-        # Dynamic segment handling
-        min_segment_angle = 5  # Minimum angle per segment
-        max_segments = int(360 / min_segment_angle)
-        segments_to_draw = min(len(self.segments), max_segments)
-        segment_angle = 360 / segments_to_draw
+        segment_angle = 360 / len(self.segments)
+        if self.labels is None:
+            self.build_labels()
 
-        for i in range(segments_to_draw):
-            segment = self.segments[i % len(self.segments)]
-            color = self.colors[i % len(self.colors)]
-            
+        for i, color in enumerate(self.colors):
             # Draw segment
             start_angle = angle_to_draw + i * segment_angle
             end_angle = angle_to_draw + (i + 1) * segment_angle
@@ -423,21 +451,19 @@ class WheelSpinner:
             pygame.draw.polygon(surface, color, points)
             pygame.draw.polygon(surface, BLACK, points, 1)
 
-            # Dynamic label rendering
-            if len(self.segments) <= 20 or i % 2 == 0:  # Show all or every other
-                font_size = max(10, int(20 - len(self.segments)/3))
-                segment_font = pygame.font.SysFont('Arial', font_size)
-                
-                mid_angle = angle_to_draw + (i + 0.5) * segment_angle
-                label_radius = self.wheel_radius * (0.6 if len(self.segments) > 20 else 0.7)
-                label_pos = (
-                    self.wheel_center[0] + label_radius * math.cos(math.radians(mid_angle)),
-                    self.wheel_center[1] + label_radius * math.sin(math.radians(mid_angle))
-                )
-                
-                text_surf = segment_font.render(segment, True, BLACK)
-                text_rect = text_surf.get_rect(center=label_pos)
-                surface.blit(text_surf, text_rect)
+            # Label along the segment's middle, ending inside the rim clear of the pointer tip
+            label = self.labels[i]
+            mid_angle = (angle_to_draw + (i + 0.5) * segment_angle) % 360
+            label_end = min(self.wheel_radius * 0.92, self.wheel_radius - 26)
+            label_radius = label_end - label.get_width() / 2
+            label_pos = (
+                self.wheel_center[0] + label_radius * math.cos(math.radians(mid_angle)),
+                self.wheel_center[1] + label_radius * math.sin(math.radians(mid_angle))
+            )
+            # Turn the text to follow the radius; on the left half, flip it so it isn't upside down
+            rotation = 180 - mid_angle if 90 < mid_angle < 270 else -mid_angle
+            rotated = pygame.transform.rotozoom(label, rotation, 1)
+            surface.blit(rotated, rotated.get_rect(center=label_pos))
         
         # Draw center circle
         pygame.draw.circle(surface, WHITE, self.wheel_center, self.wheel_radius * 0.1)
