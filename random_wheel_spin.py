@@ -310,6 +310,7 @@ class WheelSpinner:
         self.wheel_center = (0, 0)
         self.wheel_radius = 0
         self.spin_button_rect = None
+        self.close_rect = None  # CLOSE button of the winner box, set when the box is drawn
         self.font_cache = {}
         self.labels = None  # Rendered segment labels; rebuilt when segments or wheel size change
         self.update_dimensions(INIT_WIDTH, INIT_HEIGHT)
@@ -478,41 +479,36 @@ class WheelSpinner:
         ]
         pygame.draw.polygon(surface, RED, pointer_points)
                 
-        # Draw result if needed
+    def draw_result(self, surface, width, height):
+        """Winner box over a dimmed screen; drawn last so it covers everything."""
         if self.show_result and self.result:
             overlay = pygame.Surface((width, height), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 180))
             surface.blit(overlay, (0, 0))
             
-            box_width, box_height = 350, 200
-            box_rect = pygame.Rect(
-                (width - box_width) // 2,
-                (height - box_height) // 2,
-                box_width,
-                box_height
-            )
-            pygame.draw.rect(surface, WHEEL_BACKGROUND, box_rect, border_radius=15)
-            pygame.draw.rect(surface, (0, 100, 0), box_rect, 3, border_radius=15)
-            
-            winner_text = large_font.render(f"WINNER:", True, BLACK)
-            winner_rect = winner_text.get_rect(center=(width//2, height//2 - 30))
-            surface.blit(winner_text, winner_rect)
-            
+            # Scale the box with the window by the same factor as the fonts
+            scale = min(width / INIT_WIDTH, height / INIT_HEIGHT)
+            winner_text = large_font.render("WINNER:", True, BLACK)
             result_text = large_font.render(self.result, True, (0, 100, 0))
-            result_rect = result_text.get_rect(center=(width//2, height//2 + 30))
-            surface.blit(result_text, result_rect)
-            
-            close_rect = pygame.Rect(
-                (width - 120) // 2,
-                height//2 + 70,
-                120,
-                40
-            )
-            pygame.draw.rect(surface, (200, 50, 50), close_rect, border_radius=5)
-            pygame.draw.rect(surface, BLACK, close_rect, 2, border_radius=5)
+
+            # Widen the box for long results, but keep it inside the window
+            box_width = min(width - 20, max(350 * scale, result_text.get_width() + 80 * scale))
+            box_height = 200 * scale
+            box_rect = pygame.Rect(0, 0, box_width, box_height)
+            box_rect.center = (width // 2, height // 2)
+            pygame.draw.rect(surface, WHEEL_BACKGROUND, box_rect, border_radius=int(15 * scale))
+            pygame.draw.rect(surface, (0, 100, 0), box_rect, max(2, int(3 * scale)), border_radius=int(15 * scale))
+
+            surface.blit(winner_text, winner_text.get_rect(center=(width // 2, height // 2 - 50 * scale)))
+            surface.blit(result_text, result_text.get_rect(center=(width // 2, height // 2 + 5 * scale)))
+
+            # Shared with the click handler so the clickable area always matches the drawing
+            self.close_rect = pygame.Rect(0, 0, 120 * scale, 40 * scale)
+            self.close_rect.center = (width // 2, height // 2 + 60 * scale)
+            pygame.draw.rect(surface, (200, 50, 50), self.close_rect, border_radius=int(5 * scale))
+            pygame.draw.rect(surface, BLACK, self.close_rect, 2, border_radius=int(5 * scale))
             close_text = font.render("CLOSE", True, WHITE)
-            close_text_rect = close_text.get_rect(center=close_rect.center)
-            surface.blit(close_text, close_text_rect)
+            surface.blit(close_text, close_text.get_rect(center=self.close_rect.center))
 
 def initialize_fonts():
     global font, large_font
@@ -592,17 +588,12 @@ while running:
         elif event.type == pygame.MOUSEBUTTONDOWN:
             mouse_pos = pygame.mouse.get_pos()
             if not spinner.spinning:
-                if spinner.spin_button_rect.collidepoint(mouse_pos):
-                    spinner.spin()
-                elif spinner.show_result:
-                    close_rect = pygame.Rect(
-                        (current_width - 120) // 2,
-                        current_height//2 + 70,
-                        120,
-                        40
-                    )
-                    if close_rect.collidepoint(mouse_pos):
+                if spinner.show_result:
+                    # The winner box covers everything; only its CLOSE button responds
+                    if spinner.close_rect and spinner.close_rect.collidepoint(mouse_pos):
                         spinner.show_result = False
+                elif spinner.spin_button_rect.collidepoint(mouse_pos):
+                    spinner.spin()
                 elif update_button_rect.collidepoint(mouse_pos):
                     new_segments = input_box.text.split('\n')
                     spinner.update_segments(new_segments)
@@ -642,7 +633,9 @@ while running:
         text = large_font.render("SPIN!", True, WHITE)
         screen.blit(text, (spinner.spin_button_rect.centerx - text.get_width() // 2, 
                           spinner.spin_button_rect.centery - text.get_height() // 2))
-    
+
+    spinner.draw_result(screen, current_width, current_height)
+
     pygame.display.flip()
 
 pygame.quit()
