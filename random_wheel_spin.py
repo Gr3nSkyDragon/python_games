@@ -361,11 +361,14 @@ class WheelSpinner:
     def update_dimensions(self, width, height):
         self.wheel_center = (width // 3, height // 2)
         self.wheel_radius = min(width, height) * 0.33
+        # Scale the button with the window, like the UPDATE and RESET buttons
+        width_ratio = width / INIT_WIDTH
+        height_ratio = height / INIT_HEIGHT
         self.spin_button_rect = pygame.Rect(
-            width // 3 - 100,
-            height - 100,
-            200,
-            50
+            width // 3 - 100 * width_ratio,
+            height - 100 * height_ratio,
+            200 * width_ratio,
+            50 * height_ratio
         )
         self.labels = None
 
@@ -375,10 +378,11 @@ class WheelSpinner:
             self.show_result = False
             self.spin_time = 0
             self.result = None
-            # Spin from wherever the wheel is now: at least 3 full turns, then stop at a uniformly
-            # random point so every segment is equally likely to win
+            # Spin from wherever the wheel is now, in either direction: at least 3 full turns,
+            # then stop at a uniformly random point so every segment is equally likely to win
             self.start_angle = self.angle
-            self.spin_distance = rng.randint(3, 5) * 360 + rng.uniform(0, 360)
+            direction = rng.choice((1, -1))
+            self.spin_distance = direction * (rng.randint(3, 5) * 360 + rng.uniform(0, 360))
             self.spin_duration = rng.uniform(4000, 5500)
 
     def update(self, dt):
@@ -415,14 +419,11 @@ class WheelSpinner:
         base_size = max(8, int(min(wedge_width * 0.75, r * 0.16)))
         max_length = r * 0.68  # from just inside the rim to near the hub
         self.labels = []
-        for text, color in zip(self.segments, self.colors):
-            # Black or white text, whichever stands out more against the segment color
-            luminance = 0.299 * color[0] + 0.587 * color[1] + 0.114 * color[2]
-            text_color = BLACK if luminance > 140 else WHITE
-            surf = self.label_font(base_size).render(text, True, text_color)
+        for text in self.segments:
+            surf = self.label_font(base_size).render(text, True, BLACK)
             if surf.get_width() > max_length:
                 size = max(8, int(base_size * max_length / surf.get_width()))
-                surf = self.label_font(size).render(text, True, text_color)
+                surf = self.label_font(size).render(text, True, BLACK)
             self.labels.append(surf)
 
     def draw(self, surface, width, height):
