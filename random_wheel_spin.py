@@ -11,7 +11,7 @@ pygame.init()
 # Initial screen dimensions
 INIT_WIDTH, INIT_HEIGHT = 1000, 600
 screen = pygame.display.set_mode((INIT_WIDTH, INIT_HEIGHT), pygame.RESIZABLE)
-pygame.display.set_caption("Random Wheel Spinner v.1.1")
+pygame.display.set_caption("Random Wheel Spinner v.1.2")
 
 # Randomness from the operating system, so spins can't fall into a repeatable pattern
 rng = random.SystemRandom()
