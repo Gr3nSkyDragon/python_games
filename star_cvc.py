@@ -1,10 +1,35 @@
 import pygame
+import pygame.gfxdraw
 import os
+import json
+import math
 import random
 import string
 import pyttsx3
 import sys
-from paths import resource
+from paths import resource, local
+
+# Volume settings, saved next to the exe so they're remembered between sessions
+SETTINGS_FILE = local('star_cvc_settings.json')
+DEFAULT_SETTINGS = {'sfx_volume': 1.0, 'voice_volume': 0.9}
+
+def load_settings():
+    try:
+        with open(SETTINGS_FILE) as f:
+            saved = json.load(f)
+        return {key: min(1.0, max(0.0, float(saved.get(key, default))))
+                for key, default in DEFAULT_SETTINGS.items()}
+    except (OSError, ValueError, TypeError, AttributeError):
+        return dict(DEFAULT_SETTINGS)
+
+def save_settings():
+    try:
+        with open(SETTINGS_FILE, 'w') as f:
+            json.dump(settings, f, indent=2)
+    except OSError as e:
+        print(f"Couldn't save settings: {e}")
+
+settings = load_settings()
 
 # Initialize text-to-speech engine
 def init_tts():
@@ -12,7 +37,7 @@ def init_tts():
         engine = pyttsx3.init()
         voices = engine.getProperty('voices')
         engine.setProperty('rate', 170)
-        engine.setProperty('volume', 0.9)
+        engine.setProperty('volume', settings['voice_volume'])
         engine.setProperty('voice', voices[1].id)
         return engine
     except Exception as e:
@@ -70,6 +95,24 @@ except Exception as e:
     print(f"Couldn't load sound files: {e}")
     wrong_sound = None
     hooray_sound = None
+
+def apply_volumes():
+    """SFX covers both the hooray and the wrong-answer buzzer; Voice is text-to-speech."""
+    for sound in (wrong_sound, hooray_sound):
+        if sound:
+            sound.set_volume(settings['sfx_volume'])
+    if tts_engine:
+        tts_engine.setProperty('volume', settings['voice_volume'])
+
+apply_volumes()
+
+def speak(text):
+    if tts_engine:
+        try:
+            tts_engine.say(text)
+            tts_engine.runAndWait()
+        except Exception as e:
+            print(f"Error with text-to-speech: {e}")
 
 # Colors and font
 white = (162, 228, 184)
@@ -184,6 +227,104 @@ def create_next_button():
 # Initialize it
 next_image_button = create_next_button()
 
+# Settings: a cog in the top-right corner opens volume sliders
+SLIDERS = [('sfx_volume', 'SFX'), ('voice_volume', 'Voice')]
+settings_open = False
+dragging_slider = None  # settings key of the slider being dragged
+
+def cog_rect():
+    size = max(32, int(min(screen_width, screen_height) * 0.07))
+    margin = size // 3
+    return pygame.Rect(screen_width - size - margin, margin, size, size)
+
+def draw_cog(rect):
+    cx, cy = rect.center
+    outer = rect.width / 2
+    inner = outer * 0.72
+    teeth = 8
+    points = []
+    for i in range(teeth * 4):
+        # Each tooth is two points on the outer edge between two on the inner edge
+        radius = outer if i % 4 in (1, 2) else inner
+        angle = 2 * math.pi * (i + 0.5) / (teeth * 4)
+        points.append((cx + radius * math.cos(angle), cy + radius * math.sin(angle)))
+    cog_color = (70, 70, 70)
+    pygame.gfxdraw.aapolygon(screen, points, cog_color)
+    pygame.gfxdraw.filled_polygon(screen, points, cog_color)
+    hole = int(outer * 0.3)
+    pygame.gfxdraw.aacircle(screen, cx, cy, hole, white)
+    pygame.gfxdraw.filled_circle(screen, cx, cy, hole, white)
+
+def settings_layout():
+    """The panel under the cog, and a slider track for each setting."""
+    cog = cog_rect()
+    row_height = max(44, int(screen_height * 0.075))
+    panel = pygame.Rect(0, 0, max(300, int(screen_width * 0.28)), row_height * len(SLIDERS) + row_height // 2)
+    panel.topright = (cog.right, cog.bottom + 8)
+    label_width = panel.width * 0.25
+    value_width = panel.width * 0.22
+    knob_room = 16  # keeps the knob clear of the label and percentage at either end
+    tracks = {}
+    for i, (key, _) in enumerate(SLIDERS):
+        y = panel.y + row_height // 4 + row_height * i + row_height // 2
+        tracks[key] = pygame.Rect(panel.x + label_width + knob_room, y - 4,
+                                  panel.width - label_width - value_width - 2 * knob_room, 8)
+    return panel, tracks
+
+def draw_settings():
+    panel, tracks = settings_layout()
+    pygame.draw.rect(screen, (245, 245, 245), panel, border_radius=10)
+    pygame.draw.rect(screen, (70, 70, 70), panel, 2, border_radius=10)
+    label_font = pygame.font.Font(None, max(26, int(panel.height / len(SLIDERS) * 0.55)))
+    for key, label in SLIDERS:
+        track = tracks[key]
+        value = settings[key]
+        text = label_font.render(label, True, black)
+        screen.blit(text, text.get_rect(midleft=(panel.x + 15, track.centery)))
+        pygame.draw.rect(screen, (190, 190, 190), track, border_radius=4)
+        filled = pygame.Rect(track.x, track.y, int(track.width * value), track.height)
+        pygame.draw.rect(screen, (60, 140, 220), filled, border_radius=4)
+        knob = (int(track.x + track.width * value), track.centery)
+        pygame.draw.circle(screen, (60, 140, 220), knob, 12)
+        pygame.draw.circle(screen, black, knob, 12, 2)
+        percent = label_font.render(f"{round(value * 100)}%", True, black)
+        screen.blit(percent, percent.get_rect(midright=(panel.right - 15, track.centery)))
+
+def set_slider(key, x):
+    _, tracks = settings_layout()
+    track = tracks[key]
+    settings[key] = round(min(1.0, max(0.0, (x - track.x) / track.width)), 2)  # whole percents
+    apply_volumes()
+
+def handle_settings_click(pos, mouse_button):
+    """Return True if the click belongs to the cog or settings panel, so the game ignores it."""
+    global settings_open, dragging_slider
+    if cog_rect().collidepoint(pos):
+        settings_open = not settings_open
+        return True
+    if not settings_open:
+        return False
+    panel, tracks = settings_layout()
+    if panel.collidepoint(pos):
+        for key, track in tracks.items():
+            if mouse_button == 1 and track.inflate(24, 30).collidepoint(pos):
+                dragging_slider = key
+                set_slider(key, pos[0])
+        return True
+    settings_open = False  # Clicking anywhere else closes the panel
+    return True
+
+def finish_slider_drag():
+    global dragging_slider
+    key = dragging_slider
+    dragging_slider = None
+    save_settings()
+    # Play a preview at the new volume
+    if key == 'sfx_volume' and hooray_sound:
+        hooray_sound.play()
+    elif key == 'voice_volume':
+        speak(current_word or "Voice")
+
 # Main game loop
 running = True
 while running:
@@ -193,16 +334,14 @@ while running:
             
         elif event.type == pygame.MOUSEBUTTONDOWN:
             mouse_pos = pygame.mouse.get_pos()
-            
-            if image and image.get_rect(topleft=(screen_width / 2 - image.get_width() / 2, 
-                                               screen_height * image_y_percent - image.get_height() / 2)).collidepoint(mouse_pos):
-                if tts_engine:
-                    try:
-                        tts_engine.say(current_word)
-                        tts_engine.runAndWait()
-                    except Exception as e:
-                        print(f"Error with text-to-speech: {e}")
-            
+
+            if handle_settings_click(mouse_pos, event.button):
+                pass  # The cog or settings panel used this click
+
+            elif image and image.get_rect(topleft=(screen_width / 2 - image.get_width() / 2,
+                                                 screen_height * image_y_percent - image.get_height() / 2)).collidepoint(mouse_pos):
+                speak(current_word)
+
             elif prev_button.rect.collidepoint(mouse_pos) and index > 0:
                 index -= 1
                 random_consonant_buttons, random_button_index = update_folder(index)
@@ -227,7 +366,13 @@ while running:
                             button.color = red
                             if wrong_sound:
                                 wrong_sound.play()
-                                
+
+        elif event.type == pygame.MOUSEMOTION and dragging_slider:
+            set_slider(dragging_slider, event.pos[0])
+
+        elif event.type == pygame.MOUSEBUTTONUP and dragging_slider:
+            finish_slider_drag()
+
         elif event.type == pygame.VIDEORESIZE:
             screen_width, screen_height = event.w, event.h
             screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
@@ -256,7 +401,11 @@ while running:
     prev_button.draw()
     next_button.draw()
     next_image_button.draw()
-    
+
+    draw_cog(cog_rect())
+    if settings_open:
+        draw_settings()
+
     pygame.display.flip()
     clock.tick(60)
 

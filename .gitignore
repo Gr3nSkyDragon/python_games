@@ -17,3 +17,6 @@ phonixmons_save.dat
 
 # Full-size originals of shrunk images (tools/shrink_images.py); zip for releases
 originals/
+
+# Per-machine game settings (e.g. Star CVC volumes)
+*_settings.json
