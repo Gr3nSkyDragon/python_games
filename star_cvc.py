@@ -65,22 +65,26 @@ screen_height = 720
 screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
 
 phonics_words_folder = resource('star', 'families')
+IMAGE_TYPES = ('.png', '.jpg', '.jpeg', '.gif')
 
-if not os.path.isdir(phonics_words_folder):
-    print("Warning: Could not find phonics words folder")
-    folder_names = []
-else:
+def populated_families():
+    """Word-family folders that contain at least one picture, in alphabetical order."""
+    families = []
     try:
-        folder_names = [name for name in os.listdir(phonics_words_folder) 
-                       if os.path.isdir(os.path.join(phonics_words_folder, name))]
-    except Exception as e:
+        for name in sorted(os.listdir(phonics_words_folder)):
+            path = os.path.join(phonics_words_folder, name)
+            if os.path.isdir(path) and any(f.lower().endswith(IMAGE_TYPES) for f in os.listdir(path)):
+                families.append(name)
+    except OSError as e:
         print(f"Error reading phonics folders: {e}")
-        folder_names = []
+    return families
+
+folder_names = populated_families()
 
 # Game state variables
-index = 0
-selected_folder_name = folder_names[index] if folder_names else "No folders found"
-selected_subfolder_path = os.path.join(phonics_words_folder, selected_folder_name) if folder_names else ""
+on_menu = True  # Start on the main menu; picking a word family switches to the game
+selected_folder_name = ""
+selected_subfolder_path = ""
 image = None
 image_first_letter = ""
 current_word = ""  # Track the complete word
@@ -156,8 +160,8 @@ def generate_random_consonant(exclude_letter, used_letters):
 def load_random_image():
     global image, image_first_letter, current_word, hidden_word, revealed
     try:
-        image_filenames = [name for name in os.listdir(selected_subfolder_path) 
-                          if name.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
+        image_filenames = [name for name in os.listdir(selected_subfolder_path)
+                          if name.lower().endswith(IMAGE_TYPES)]
         if image_filenames:
             selected_image_filename = random.choice(image_filenames)
             current_word = os.path.splitext(selected_image_filename)[0]  # Store the complete word
@@ -201,20 +205,23 @@ def create_consonant_buttons():
     
     return buttons, correct_button_index
 
-def update_folder(index):
-    global selected_folder_name, selected_subfolder_path, image_first_letter, image
-    selected_folder_name = folder_names[index]
-    selected_subfolder_path = os.path.join(phonics_words_folder, selected_folder_name)
+def choose_family(name):
+    """Start the game with the chosen word family."""
+    global selected_folder_name, selected_subfolder_path, on_menu
+    selected_folder_name = name
+    selected_subfolder_path = os.path.join(phonics_words_folder, name)
+    on_menu = False
     load_random_image()
     return create_consonant_buttons()
 
-# Initialize game
-selected_image_filename = load_random_image()
-random_consonant_buttons, random_button_index = create_consonant_buttons()
+# No word family yet: the game starts on the main menu
+random_consonant_buttons, random_button_index = [], None
 
-# Navigation buttons
-prev_button = Button(screen_width * 0.05, screen_height * 0.1, "<", color=(200, 200, 200))
-next_button = Button(screen_width * 0.15, screen_height * 0.1, ">", color=(200, 200, 200))
+# Returns to the main menu
+def create_menu_button():
+    return Button(screen_width * 0.05, screen_height * 0.1, "Menu", color=(200, 200, 200))
+
+menu_button = create_menu_button()
 
 # Replace your current next_image_button initialization with:
 def create_next_button():
@@ -325,6 +332,118 @@ def finish_slider_drag():
     elif key == 'voice_volume':
         speak(current_word or "Voice")
 
+# Main menu: word-family buttons in two columns, in a list that scrolls when it doesn't fit
+MENU_COLUMNS = 2
+SCROLLBAR_WIDTH = 16
+menu_scroll = 0      # How far down the list is scrolled, in pixels
+scroll_drag = None   # (mouse y, menu_scroll) when the scrollbar handle was grabbed
+menu_fonts = {}
+
+def menu_font(size):
+    if size not in menu_fonts:
+        menu_fonts[size] = pygame.font.Font(None, size)
+    return menu_fonts[size]
+
+def menu_layout():
+    """The visible list area, the button size and gap, and the height of the whole list."""
+    top = int(screen_height * 0.2)
+    area = pygame.Rect(int(screen_width * 0.12), top,
+                       int(screen_width * 0.76), screen_height - top - int(screen_height * 0.05))
+    gap = max(10, int(screen_height * 0.025))
+    button_width = (area.width - SCROLLBAR_WIDTH - gap - gap * (MENU_COLUMNS - 1)) // MENU_COLUMNS
+    button_height = max(48, int(screen_height * 0.1))
+    rows = math.ceil(len(folder_names) / MENU_COLUMNS)
+    list_height = max(0, rows * (button_height + gap) - gap)
+    return area, button_width, button_height, gap, list_height
+
+def max_menu_scroll():
+    area, _, _, _, list_height = menu_layout()
+    return max(0, list_height - area.height)
+
+def scroll_menu_to(position):
+    global menu_scroll
+    menu_scroll = min(max(0, position), max_menu_scroll())
+
+def menu_buttons():
+    """(family name, rect) for every word-family button, at its scrolled position."""
+    area, button_width, button_height, gap, _ = menu_layout()
+    for i, name in enumerate(folder_names):
+        row, column = divmod(i, MENU_COLUMNS)
+        yield name, pygame.Rect(area.x + column * (button_width + gap),
+                                area.y + row * (button_height + gap) - menu_scroll,
+                                button_width, button_height)
+
+def scrollbar_rects():
+    """The scrollbar track and its draggable handle, or None when everything fits."""
+    area, _, _, _, list_height = menu_layout()
+    max_scroll = max_menu_scroll()
+    if max_scroll == 0:
+        return None
+    track = pygame.Rect(area.right - SCROLLBAR_WIDTH, area.y, SCROLLBAR_WIDTH, area.height)
+    handle_height = max(30, int(track.height * area.height / list_height))
+    handle_y = track.y + (track.height - handle_height) * menu_scroll / max_scroll
+    return track, pygame.Rect(track.x, handle_y, SCROLLBAR_WIDTH, handle_height)
+
+def draw_menu():
+    title = menu_font(max(36, int(screen_height * 0.09))).render("Choose a word family", True, black)
+    screen.blit(title, title.get_rect(center=(screen_width / 2, screen_height * 0.1)))
+
+    area, _, button_height, _, _ = menu_layout()
+    if not folder_names:
+        message = menu_font(max(28, int(screen_height * 0.05))).render(
+            "No word families with pictures found", True, black)
+        screen.blit(message, message.get_rect(midtop=area.midtop))
+        return
+
+    # Only draw inside the list area, so buttons scrolled partly out of view are cut off cleanly
+    screen.set_clip(area)
+    label_font = menu_font(int(button_height * 0.6))
+    for name, rect in menu_buttons():
+        if rect.colliderect(area):
+            pygame.draw.rect(screen, gray_blue, rect, border_radius=8)
+            pygame.draw.rect(screen, black, rect, 2, border_radius=8)
+            label = label_font.render(name, True, black)
+            screen.blit(label, label.get_rect(center=rect.center))
+    screen.set_clip(None)
+
+    bar = scrollbar_rects()
+    if bar:
+        track, handle = bar
+        pygame.draw.rect(screen, (200, 200, 200), track, border_radius=8)
+        pygame.draw.rect(screen, (90, 90, 90), handle, border_radius=8)
+
+def handle_menu_click(pos):
+    """Scroll if the scrollbar was clicked; return the family name if a family button was."""
+    global scroll_drag
+    bar = scrollbar_rects()
+    if bar:
+        track, handle = bar
+        if handle.collidepoint(pos):
+            scroll_drag = (pos[1], menu_scroll)
+            return None
+        if track.collidepoint(pos):
+            # Clicking the track above or below the handle jumps a page that way
+            area = menu_layout()[0]
+            scroll_menu_to(menu_scroll + (area.height if pos[1] > handle.centery else -area.height))
+            return None
+    area = menu_layout()[0]
+    if area.collidepoint(pos):
+        for name, rect in menu_buttons():
+            if rect.collidepoint(pos):
+                return name
+    return None
+
+def drag_scrollbar(mouse_y):
+    bar = scrollbar_rects()
+    if not bar:
+        return  # The window grew and the list fits now
+    track, handle = bar
+    start_y, start_scroll = scroll_drag
+    # Moving the handle the whole free length of the track scrolls the whole list
+    free_length = track.height - handle.height
+    if free_length > 0:
+        scroll_menu_to(start_scroll + (mouse_y - start_y) * max_menu_scroll() / free_length)
+
 # Main game loop
 running = True
 while running:
@@ -333,23 +452,25 @@ while running:
             running = False
             
         elif event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button in (4, 5):
+                continue  # Mouse wheel; scrolling is handled by MOUSEWHEEL, not as a click
             mouse_pos = pygame.mouse.get_pos()
 
             if handle_settings_click(mouse_pos, event.button):
                 pass  # The cog or settings panel used this click
 
+            elif on_menu:
+                family = handle_menu_click(mouse_pos)
+                if family:
+                    random_consonant_buttons, random_button_index = choose_family(family)
+
             elif image and image.get_rect(topleft=(screen_width / 2 - image.get_width() / 2,
                                                  screen_height * image_y_percent - image.get_height() / 2)).collidepoint(mouse_pos):
                 speak(current_word)
 
-            elif prev_button.rect.collidepoint(mouse_pos) and index > 0:
-                index -= 1
-                random_consonant_buttons, random_button_index = update_folder(index)
-                
-            elif next_button.rect.collidepoint(mouse_pos) and index < len(folder_names) - 1:
-                index += 1
-                random_consonant_buttons, random_button_index = update_folder(index)
-                
+            elif menu_button.rect.collidepoint(mouse_pos):
+                on_menu = True
+
             elif next_image_button.rect.collidepoint(mouse_pos):
                 selected_image_filename = load_random_image()
                 random_consonant_buttons, random_button_index = create_consonant_buttons()
@@ -367,40 +488,56 @@ while running:
                             if wrong_sound:
                                 wrong_sound.play()
 
+        elif event.type == pygame.MOUSEWHEEL and on_menu and not settings_open:
+            # One notch scrolls about half a row
+            _, _, button_height, gap, _ = menu_layout()
+            scroll_menu_to(menu_scroll - event.y * (button_height + gap) // 2)
+
         elif event.type == pygame.MOUSEMOTION and dragging_slider:
             set_slider(dragging_slider, event.pos[0])
+
+        elif event.type == pygame.MOUSEMOTION and scroll_drag:
+            drag_scrollbar(event.pos[1])
 
         elif event.type == pygame.MOUSEBUTTONUP and dragging_slider:
             finish_slider_drag()
 
+        elif event.type == pygame.MOUSEBUTTONUP and scroll_drag:
+            scroll_drag = None
+
         elif event.type == pygame.VIDEORESIZE:
             screen_width, screen_height = event.w, event.h
             screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
-            random_consonant_buttons, random_button_index = create_consonant_buttons()
-            next_image_button = create_next_button() 
-    
+            if not on_menu:
+                random_consonant_buttons, random_button_index = create_consonant_buttons()
+            next_image_button = create_next_button()
+            menu_button = create_menu_button()
+            scroll_menu_to(menu_scroll)  # Keep the list in range for the new size
+
     # Render
     screen.fill(white)
-    
-    if image:
-        image_x = screen_width / 2 - image.get_width() / 2
-        image_y = screen_height * image_y_percent - image.get_height() / 2
-        screen.blit(image, (image_x, image_y))
-    
-    # Display either the full word or hidden word based on 'revealed' state
-    display_word = current_word if revealed else f"-{hidden_word}"
-    text_surface = font.render(display_word, True, black)
-    text_x = screen_width / 2 - text_surface.get_width() / 2
-    text_y = screen_height * text_y_percent - text_surface.get_height() / 2
-    screen.blit(text_surface, (text_x, text_y))
-    
-    # Draw buttons
-    for button in random_consonant_buttons:
-        button.draw()
-    
-    prev_button.draw()
-    next_button.draw()
-    next_image_button.draw()
+
+    if on_menu:
+        draw_menu()
+    else:
+        if image:
+            image_x = screen_width / 2 - image.get_width() / 2
+            image_y = screen_height * image_y_percent - image.get_height() / 2
+            screen.blit(image, (image_x, image_y))
+
+        # Display either the full word or hidden word based on 'revealed' state
+        display_word = current_word if revealed else f"-{hidden_word}"
+        text_surface = font.render(display_word, True, black)
+        text_x = screen_width / 2 - text_surface.get_width() / 2
+        text_y = screen_height * text_y_percent - text_surface.get_height() / 2
+        screen.blit(text_surface, (text_x, text_y))
+
+        # Draw buttons
+        for button in random_consonant_buttons:
+            button.draw()
+
+        menu_button.draw()
+        next_image_button.draw()
 
     draw_cog(cog_rect())
     if settings_open:
