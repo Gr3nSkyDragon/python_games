@@ -137,15 +137,19 @@ button_width_percent = 0.15
 button_height_percent = 0.08
 
 class Button:
-    def __init__(self, x, y, text, color=gray_blue):
-        self.rect = pygame.Rect(x, y, 
-                               screen_width * button_width_percent, 
+    def __init__(self, x, y, text, color=gray_blue, border=False, corner_radius=0):
+        self.rect = pygame.Rect(x, y,
+                               screen_width * button_width_percent,
                                screen_height * button_height_percent)
         self.text = text
         self.color = color
-    
+        self.border = border
+        self.corner_radius = corner_radius
+
     def draw(self):
-        pygame.draw.rect(screen, self.color, self.rect)
+        pygame.draw.rect(screen, self.color, self.rect, border_radius=self.corner_radius)
+        if self.border:
+            pygame.draw.rect(screen, black, self.rect, 2, border_radius=self.corner_radius)
         btn_font = pygame.font.Font(None, int(game_font_size * 0.3))
         text_surface = btn_font.render(self.text, True, black)
         text_rect = text_surface.get_rect(center=self.rect.center)
@@ -200,7 +204,7 @@ def create_consonant_buttons():
     for i in range(4):
         x = button_spacing * (i + 1) + (screen_width * button_width_percent) * i
         y = screen_height * button_y_percent - (screen_height * button_height_percent) / 2
-        buttons.append(Button(x, y, used_letters[i]))
+        buttons.append(Button(x, y, used_letters[i], border=True))
     
     # Find which button has the correct answer
     correct_button_index = used_letters.index(image_first_letter)
@@ -221,7 +225,8 @@ random_consonant_buttons, random_button_index = [], None
 
 # Returns to the main menu
 def create_menu_button():
-    return Button(screen_width * 0.05, screen_height * 0.1, "Menu", color=(200, 200, 200))
+    # Same look as the word-family buttons on the main menu
+    return Button(screen_width * 0.05, screen_height * 0.1, "Menu", border=True, corner_radius=8)
 
 menu_button = create_menu_button()
 
@@ -387,7 +392,7 @@ def scrollbar_rects():
     return track, pygame.Rect(track.x, handle_y, SCROLLBAR_WIDTH, handle_height)
 
 def draw_menu():
-    title = menu_font(max(36, int(screen_height * 0.09))).render("Choose a word family", True, black)
+    title = menu_font(max(40, int(screen_height * 0.1))).render("Choose a Word Family", True, black)
     screen.blit(title, title.get_rect(center=(screen_width / 2, screen_height * 0.1)))
 
     area, _, button_height, _, _ = menu_layout()
