@@ -49,7 +49,7 @@ def init_tts():
 # Initialize Pygame
 pygame.init()
 pygame.mixer.init()
-pygame.display.set_caption('Star CVC v.2.2')
+pygame.display.set_caption('Star CVC v.2.5')
 clock = pygame.time.Clock()
 tts_engine = init_tts()
 
@@ -235,7 +235,9 @@ def create_next_button():
     return Button(
         screen_width - (screen_width * button_width_percent) - 20,
         screen_height - (screen_height * button_height_percent) - 20,
-        "Next"
+        "Next",
+        border=True,
+        corner_radius=8
     )
 
 # Initialize it
