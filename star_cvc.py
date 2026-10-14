@@ -30,6 +30,8 @@ def save_settings():
         print(f"Couldn't save settings: {e}")
 
 settings = load_settings()
+if not os.path.exists(SETTINGS_FILE):
+    save_settings()  # Create it with the defaults, so it's there to find and edit
 
 # Initialize text-to-speech engine
 def init_tts():
