@@ -5,9 +5,9 @@ import json
 import math
 import random
 import string
-import pyttsx3
 import sys
 from paths import resource, local
+from speech import Speech
 
 # Volume settings, saved next to the exe so they're remembered between sessions
 SETTINGS_FILE = local('star_cvc_settings.json')
@@ -33,25 +33,12 @@ settings = load_settings()
 if not os.path.exists(SETTINGS_FILE):
     save_settings()  # Create it with the defaults, so it's there to find and edit
 
-# Initialize text-to-speech engine
-def init_tts():
-    try:
-        engine = pyttsx3.init()
-        voices = engine.getProperty('voices')
-        engine.setProperty('rate', 170)
-        engine.setProperty('volume', settings['voice_volume'])
-        engine.setProperty('voice', voices[1].id)
-        return engine
-    except Exception as e:
-        print(f"Error initializing text-to-speech: {e}")
-        return None 
-
 # Initialize Pygame
 pygame.init()
 pygame.mixer.init()
 pygame.display.set_caption('Star CVC v.2.5')
 clock = pygame.time.Clock()
-tts_engine = init_tts()
+tts = Speech(settings['voice_volume'])
 
 # Load icon
 try:
@@ -107,18 +94,12 @@ def apply_volumes():
     for sound in (wrong_sound, hooray_sound):
         if sound:
             sound.set_volume(settings['sfx_volume'])
-    if tts_engine:
-        tts_engine.setProperty('volume', settings['voice_volume'])
+    tts.set_volume(settings['voice_volume'])
 
 apply_volumes()
 
 def speak(text):
-    if tts_engine:
-        try:
-            tts_engine.say(text)
-            tts_engine.runAndWait()
-        except Exception as e:
-            print(f"Error with text-to-speech: {e}")
+    tts.say(text)
 
 # Colors and font
 white = (162, 228, 184)
@@ -342,7 +323,7 @@ def finish_slider_drag():
         speak(current_word or "Voice")
 
 # Main menu: word-family buttons in two columns, in a list that scrolls when it doesn't fit
-MENU_COLUMNS = 2
+MENU_COLUMNS = 3
 SCROLLBAR_WIDTH = 16
 menu_scroll = 0      # How far down the list is scrolled, in pixels
 scroll_drag = None   # (mouse y, menu_scroll) when the scrollbar handle was grabbed
@@ -356,13 +337,15 @@ def menu_font(size):
 def menu_layout():
     """The visible list area, the button size and gap, and the height of the whole list."""
     top = int(screen_height * 0.2)
-    area = pygame.Rect(int(screen_width * 0.12), top,
-                       int(screen_width * 0.76), screen_height - top - int(screen_height * 0.05))
+    area = pygame.Rect(int(screen_width * 0.15), top,
+                       int(screen_width * 0.7), screen_height - top - int(screen_height * 0.05))
     gap = max(10, int(screen_height * 0.025))
-    button_width = (area.width - SCROLLBAR_WIDTH - gap - gap * (MENU_COLUMNS - 1)) // MENU_COLUMNS
     button_height = max(48, int(screen_height * 0.1))
     rows = math.ceil(len(folder_names) / MENU_COLUMNS)
     list_height = max(0, rows * (button_height + gap) - gap)
+    # Leave room for the scrollbar only when the list doesn't fit
+    buttons_width = area.width - (SCROLLBAR_WIDTH + gap if list_height > area.height else 0)
+    button_width = (buttons_width - gap * (MENU_COLUMNS - 1)) // MENU_COLUMNS
     return area, button_width, button_height, gap, list_height
 
 def max_menu_scroll():
