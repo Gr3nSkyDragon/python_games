@@ -36,7 +36,7 @@ if not os.path.exists(SETTINGS_FILE):
 # Initialize Pygame
 pygame.init()
 pygame.mixer.init()
-pygame.display.set_caption('Star CVC v.2.5')
+pygame.display.set_caption('Star CVC v.2.6')
 clock = pygame.time.Clock()
 tts = Speech(settings['voice_volume'])
 

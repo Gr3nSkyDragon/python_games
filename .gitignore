@@ -20,3 +20,6 @@ originals/
 
 # Per-machine game settings (e.g. Star CVC volumes)
 *_settings.json
+
+# Kokoro voice demo (local only, see kokoro_demo/README.txt)
+kokoro_demo/

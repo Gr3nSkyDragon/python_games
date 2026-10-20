@@ -9,7 +9,7 @@ pygame.init()
 screen_width = 1280
 screen_height = 720
 screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
-pygame.display.set_caption("Scuba Reader v.1.2.5")
+pygame.display.set_caption("Scuba Reader v.1.3.5")
 
 # Load window icon
 icon_path = resource('icon', 'snorkel.png')
