@@ -20,9 +20,27 @@ pygame.display.set_icon(Icon)
 background_image = pygame.image.load(resource('background', 'underwater.png'))
 background_image_original = background_image.copy()
 
+# Read texts from the .txt file, skipping blank lines
+with open(editable('scuba', 'scuba_words.txt'), "r") as file:
+    texts = [line.strip() for line in file.readlines() if line.strip()]
+
+# Define the font
+font = pygame.font.SysFont("Arial", 28)
+
+# Load the scuba image; it's scaled in handle_resize()
+scuba_image = pygame.image.load(resource('scuba', 'scuba.png'))
+scuba_image_original = scuba_image.copy()
+
+# Scaling factors for scuba image, relative to the first word's size
+scuba_width_factor = 6
+scuba_height_factor = 3
+
+# Minimum space between swimmers, in pixels
+SWIMMER_GAP = 8
+
 # Define text object class
 class TextObject(pygame.sprite.Sprite):
-    def __init__(self, text, font, color, offset):
+    def __init__(self, text, font, color):
         super().__init__()
         self.font = font
         self.color = color
@@ -30,47 +48,76 @@ class TextObject(pygame.sprite.Sprite):
         self.text_image = self.font.render(self.text, True, self.color)
         self.text_rect = self.text_image.get_rect()
         self.rect = self.text_rect.copy()
-        self.rect.x = -self.rect.width + offset  # Start the text off-screen on the left with offset
-        self.rect.y = random.randint(0, screen_height - self.rect.height)  # Random Y position
+        # Exact position; rect.x holds it rounded to whole pixels. Rounding each step instead
+        # made swimmers move different amounts depending on where they were, so they could drift together.
+        self.x = 0.0
         self.scroll_speed = 0.25  # Scroll speed
+        self.waiting = False  # Waiting off-screen on the left for a clear spot to swim in
+
+    def box(self):
+        """The area the whole swimmer covers on screen (the scuba image, not just the word)."""
+        return pygame.Rect(self.rect.x, self.rect.y, scuba_image.get_width(), scuba_image.get_height())
 
     def update(self):
-        self.rect.x += self.scroll_speed # Move the text to the right
+        if self.waiting:
+            place_swimmer(self, self.x)
+            return
 
-        if self.rect.left > screen_width:  # If the text goes off the screen on the right
-            self.rect.x = -self.rect.width  # Reset its position to the left
-            self.rect.y = random.randint(0, screen_height - self.rect.height)  # Random Y position
+        if self.scroll_speed <= 0.25:
+            return  # The slowest setting, shown as 0.00x, pauses the swimmers
+
+        self.x += self.scroll_speed  # Move the text to the right
+        self.rect.x = round(self.x)
+
+        if self.rect.left > screen_width:  # If the swimmer goes off the screen on the right
             self.text = random.choice(texts)  # Randomly select a new text
             self.text_image = self.font.render(self.text, True, self.color)  # Render the new text
             self.text_rect = self.text_image.get_rect()
+            # Come back in from just off the left edge, at a random height clear of other swimmers
+            place_swimmer(self, -scuba_image.get_width())
+
+def is_clear(swimmer, x, y):
+    """True if the swimmer would fit at (x, y) on screen without touching any other swimmer."""
+    width, height = scuba_image.get_size()
+    if not 0 <= y <= max(0, screen_height - height):
+        return False
+    candidate = pygame.Rect(round(x), y, width, height)
+    return not any(candidate.colliderect(other.box().inflate(SWIMMER_GAP * 2, SWIMMER_GAP * 2))
+                   for other in all_text_objects
+                   if other is not swimmer and not other.waiting)
+
+def place_swimmer(swimmer, x, keep_y=False):
+    """Put a swimmer at x, at a random clear height (or its current one if keep_y and it's still clear).
+
+    If there's no room it waits off-screen on the left until a gap opens. Every swimmer moves
+    the same distance each frame, so swimmers placed apart never run into each other later."""
+    if keep_y and is_clear(swimmer, x, swimmer.rect.y):
+        y = swimmer.rect.y
+    else:
+        clear = [y for y in range(max(0, screen_height - scuba_image.get_height()) + 1)
+                 if is_clear(swimmer, x, y)]
+        y = random.choice(clear) if clear else None
+    if y is None:
+        x = min(x, -scuba_image.get_width())
+    swimmer.x = x
+    swimmer.rect.x = round(x)
+    if y is not None:
+        swimmer.rect.y = y
+    swimmer.waiting = y is None
 
 # Create a group to hold the text objects
 all_text_objects = pygame.sprite.Group()
-
-# Read texts from the .txt file
-with open(editable('scuba', 'scuba_words.txt'), "r") as file:
-    texts = [line.strip() for line in file.readlines()]
-
-# Define the font
-font = pygame.font.SysFont("Arial", 28)
 
 # Define the number of objects and the stagger offset
 num_objects = len(texts)
 stagger_offset = 100
 
-# Create text objects with staggered offsets and add them to the group
+# Create a text object for each word
 for i in range(num_objects):
     color = (65, 240, 100)  # Green text color
-    text_obj = TextObject(texts[i], font, color, i * stagger_offset)
+    text_obj = TextObject(texts[i], font, color)
+    text_obj.waiting = True  # Not on screen until it's placed below
     all_text_objects.add(text_obj)
-
-# Load and resize the scuba image
-scuba_image = pygame.image.load(resource('scuba', 'scuba.png'))
-scuba_image_original = scuba_image.copy()
-
-# Scaling factors for scuba image
-scuba_width_factor = 6
-scuba_height_factor = 3
 
 # Define initial scroll speed and change in scroll speed
 scroll_speed = 1.75
@@ -84,19 +131,25 @@ button_size = int(min(screen_width, screen_height) * button_size_factor)
 button_spacing = int(button_size * 0.5)
 
 # Function to handle resizing of elements
-def handle_resize():
+def handle_resize(first_time=False):
     global screen_width, screen_height, background_image, scuba_image, button_size, button_spacing
 
     # Scale the background image to fit the new screen size
     background_image = pygame.transform.scale(background_image_original, (screen_width, screen_height))
 
-    # Scale the scuba image based on the initial text object's dimensions
-    initial_text_obj = next(iter(all_text_objects))
-    scuba_image = pygame.transform.scale(scuba_image_original, (scuba_width_factor * initial_text_obj.rect.width, scuba_height_factor * initial_text_obj.rect.height))
+    # Scale the scuba image based on the first word's size
+    word_width, word_height = font.size(texts[0] if texts else "word")
+    scuba_image = pygame.transform.scale(scuba_image_original, (scuba_width_factor * word_width, scuba_height_factor * word_height))
 
-    # Update the positions of the text objects based on the new screen size
-    for text_obj in all_text_objects:
-        text_obj.rect.y = random.randint(0, screen_height - text_obj.rect.height)
+    if first_time:
+        # Stagger the swimmers across the screen, each at a random height clear of the others
+        for i, text_obj in enumerate(all_text_objects):
+            place_swimmer(text_obj, -text_obj.rect.width + i * stagger_offset)
+    else:
+        # Keep each swimmer where it is if it still fits; otherwise find it a new clear height
+        for text_obj in all_text_objects:
+            if not text_obj.waiting:
+                place_swimmer(text_obj, text_obj.x, keep_y=True)
 
     # Update button size and spacing based on the screen size
     button_size = int(min(screen_width, screen_height) * button_size_factor)
@@ -104,7 +157,7 @@ def handle_resize():
 
 
 # Initial resizing
-handle_resize()
+handle_resize(first_time=True)
 
 # Create buttons surfaces with a light blue background
 button_color_light_blue = (173, 216, 230, 200)  # Light blue color with transparency
@@ -179,6 +232,8 @@ while running:
 
     # Draw text objects with associated scuba image
     for text_obj in all_text_objects:
+        if text_obj.waiting:
+            continue  # Still off-screen, waiting for a clear spot
         screen.blit(scuba_image, text_obj.rect)  # Draw scuba image
         text_rect_center = text_obj.rect.center
         text_rect_center = (
