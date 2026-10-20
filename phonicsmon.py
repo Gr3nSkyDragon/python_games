@@ -3,10 +3,10 @@ import sys
 import random
 import os
 import string
-import pyttsx3
 import pickle
 from pygame.time import Clock
 from paths import resource, local
+from speech import Speech
 
 # Initialize pygame
 pygame.init()
@@ -109,19 +109,6 @@ def scale_value(base_value):
 
 dictionary_item_height = scale_value(DICTIONARY_ITEM_HEIGHT)
 dictionary_image_size = scale_value(DICTIONARY_IMAGE_SIZE)
-
-# Initialize text-to-speech engine
-def init_tts():
-    try:
-        engine = pyttsx3.init()
-        voices = engine.getProperty('voices')
-        engine.setProperty('rate', 170)
-        engine.setProperty('volume', 0.9)
-        engine.setProperty('voice', voices[1].id)
-        return engine
-    except Exception as e:
-        print(f"Error initializing text-to-speech: {e}")
-        return None
 
 # Load images
 def load_images():
@@ -297,7 +284,7 @@ current_state = STATE_MAIN
 previous_state_before_encounter = STATE_MAIN
 previous_state_before_item_collect = STATE_MAIN
 previous_state_before_inventory = STATE_MAIN
-tts_engine = init_tts()
+tts = Speech(volume=0.9)
 
 def init_positions():
     global grass1_pos, grass2_pos, grass3_pos, grass4_pos, backpack_pos
@@ -1088,12 +1075,7 @@ while running:
                     current_state = STATE_INVENTORY
                 elif (current_encounter_image and 
                       check_click(event.pos, encounter_img_pos, *encounter_img_size)):
-                    if tts_engine and current_encounter_name:
-                        try:
-                            tts_engine.say(current_encounter_name)
-                            tts_engine.runAndWait()
-                        except Exception as e:
-                            print(f"Error with text-to-speech: {e}")
+                    tts.say(current_encounter_name)
                 for i, pos in enumerate(option_btn_positions[:4]):
                     if i < len(current_letter_buttons) and check_click(event.pos, pos, option_btn_width, option_btn_height):
                         if current_letter_buttons[i] in current_correct_letters:
