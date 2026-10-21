@@ -1,0 +1,5 @@
+# Letters each reel of CVC Slots can land on, one reel per line.
+# Edit them to match what your class is learning; separate letters with spaces.
+first: b c d f g h j k l m n p r s t v w y z
+middle: a e i o u
+last: b d f g k l m n p s t x

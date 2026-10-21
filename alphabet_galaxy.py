@@ -1,5 +1,6 @@
 import pygame
 import random
+import colorsys
 from paths import resource
 
 # Initialize Pygame
@@ -19,6 +20,37 @@ NUM_RECTS_1 = 9
 NUM_RECTS_2 = 8
 NUM_RECTS_3 = 9
 
+HIDDEN_COLOR = (255, 255, 0)  # Yellow tiles haven't been revealed yet
+
+def luminance(color):
+    """Relative luminance, from 0 (black) to 1 (white), as used to measure text contrast."""
+    def channel(c):
+        c /= 255
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+    r, g, b = (channel(c) for c in color)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+def random_tile_color(used):
+    """A random color light enough for the black letter to read clearly (contrast of at least 7:1),
+    and not yellowish, so a revealed tile never looks like a hidden one.
+
+    The hue is picked evenly around the color wheel and then lightened just enough to be readable,
+    so reds, blues and purples come up as often as greens (rejecting dark colors outright left
+    mostly greens, which look brightest)."""
+    while True:
+        hue = random.random()
+        if 45 / 360 <= hue <= 75 / 360:
+            continue  # Too close to the yellow of hidden tiles
+        saturation = random.uniform(0.45, 0.9)
+        lightness = random.uniform(0.45, 0.7)
+        while lightness < 0.95:
+            color = tuple(round(c * 255) for c in colorsys.hls_to_rgb(hue, lightness, saturation))
+            if luminance(color) >= 0.3:
+                break
+            lightness += 0.02  # Lighten only as much as needed
+        if luminance(color) >= 0.3 and color not in used:
+            return color
+
 # Function to get the corresponding letter for a given index
 def get_letter(index):
     if index < 9:
@@ -33,7 +65,7 @@ def main():
     global WINDOW_WIDTH, WINDOW_HEIGHT  # Marking variables as global
 
     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
-    pygame.display.set_caption("Alphabet Galaxy v.1.0")
+    pygame.display.set_caption("Alphabet Galaxy v.1.1")
 
     clock = pygame.time.Clock()
 
@@ -46,13 +78,8 @@ def main():
 
     # Function to change the color of the clicked rectangle randomly
     def change_color(i):
-        if colors[i] == (255, 255, 0):
-            r, g, b = random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)
-            new_color = (r, g, b)
-            while new_color == (255, 255, 0) or new_color in colors[:i]:  # Ensure the new color is not yellow and not used before
-                r, g, b = random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)
-                new_color = (r, g, b)
-            colors[i] = new_color
+        if colors[i] == HIDDEN_COLOR:
+            colors[i] = random_tile_color(used=colors)
 
     # Calculate the positions and sizes of rectangles
     def calculate_rectangles():
@@ -85,7 +112,7 @@ def main():
 
     # Main game loop
     running = True
-    colors = [(255, 255, 0)] * (NUM_RECTS_1 + NUM_RECTS_2 + NUM_RECTS_3)
+    colors = [HIDDEN_COLOR] * (NUM_RECTS_1 + NUM_RECTS_2 + NUM_RECTS_3)
     rectangles = calculate_rectangles()
 
     while running:
@@ -111,7 +138,7 @@ def main():
         font = pygame.font.Font(None, 36)
         for i, rect in enumerate(rectangles):
             pygame.draw.rect(screen, colors[i], rect)
-            if colors[i] != (255, 255, 0):
+            if colors[i] != HIDDEN_COLOR:
                 letter = font.render(get_letter(i), True, (0, 0, 0))
                 screen.blit(letter, (rect.x + rect.width // 2 - letter.get_width() // 2,
                                      rect.y + rect.height // 2 - letter.get_height() // 2))

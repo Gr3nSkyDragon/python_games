@@ -6,7 +6,7 @@ from paths import resource, editable
 
 # Window boilerplate
 pygame.init()
-pygame.display.set_caption('Cowboy Numbers v.1.5')
+pygame.display.set_caption('Cowboy Numbers v.1.6')
 
 # Load window icon
 icon_path = resource('icon', 'cowboy_hat.png')
@@ -14,96 +14,81 @@ Icon = pygame.image.load(icon_path)
 pygame.display.set_icon(Icon)
 
 pygame.font.init()
-game_font_size = int(0.5 * pygame.display.Info().current_h)
-game_font = pygame.font.SysFont('Calistoga', game_font_size)
 screen_width, screen_height = 1280, 720
 screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
 clock = pygame.time.Clock()
 running = True
 
-# Button variables# white color
-color = (255, 255, 255)
-color_light = (170, 170, 170)
-color_dark = (100, 100, 100)
+# Button colors, taken from the background picture
+button_color = (191, 45, 7)         # the darkest part of the rocks
+button_hover_color = (150, 35, 5)    # a deeper rock shade for hovering, so the text stays readable
+button_text_color = (254, 159, 38)   # the darker sand on the dune under the rocks
 background = (40, 40, 120)
-background_image = pygame.image.load(resource('background', 'desert_background.jpg'))  # Image by pikisuperstar on Freepik
-background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
+background_image_original = pygame.image.load(resource('background', 'desert_background.jpg'))  # Image by pikisuperstar on Freepik
 
-# Draw buttons with relative positions
-reveal_button_width = int(0.2 * screen_width)  # 20% of the screen width
-reveal_button_height = int(0.1 * screen_height)  # 10% of the screen height
-reveal_button_x = int(0.1 * screen_width)
-reveal_button_y = int(0.8 * screen_height)
+def layout():
+    """Size and place everything for the current window size."""
+    global background_image, game_font, reveal_button, shoot_button, reveal_text, shoot_text
+    # Always scale from the original, so repeated resizing doesn't blur the picture
+    background_image = pygame.transform.scale(background_image_original, (screen_width, screen_height))
+    game_font = pygame.font.SysFont('Calistoga', int(0.75 * screen_height))
 
-shoot_button_width = int(0.2 * screen_width)  # 20% of the screen width
-shoot_button_height = int(0.1 * screen_height)  # 10% of the screen height
-shoot_button_x = int(0.9 * screen_width) - shoot_button_width
-shoot_button_y = int(0.8 * screen_height)
+    # Buttons: 20% of the window wide and 10% high, near the bottom corners
+    button_width = int(0.2 * screen_width)
+    button_height = int(0.1 * screen_height)
+    reveal_button = pygame.Rect(int(0.1 * screen_width), int(0.8 * screen_height), button_width, button_height)
+    shoot_button = pygame.Rect(int(0.9 * screen_width) - button_width, int(0.8 * screen_height),
+                               button_width, button_height)
 
-# defining a font
-smallfont_size = int(0.1 * screen_height)
-smallfont = pygame.font.SysFont('Corbel', smallfont_size)
-reveal_text = smallfont.render('Reveal', True, color)
-shoot_text = smallfont.render('Shoot!', True, color)
+    smallfont = pygame.font.SysFont('Corbel', int(0.1 * screen_height))
+    reveal_text = smallfont.render('Reveal', True, button_text_color)
+    shoot_text = smallfont.render('Shoot!', True, button_text_color)
+
+layout()
 
 # Game engine
-def numbergen():
+def numbergen(previous=None):
+    """A random number from cowboy.txt, never the same as the previous one (when there's a choice)."""
     with open(editable('cowboy', 'cowboy.txt'), "r") as file:
-        number = [line.strip() for line in file.readlines()]
-    if not number:  # Handle empty file case
+        numbers = [line.strip() for line in file.readlines() if line.strip()]
+    if not numbers:  # Handle empty file case
         return "00"  # Or some default value
-    rand_number = random.randint(0, len(number) - 1)  # Use length of list as max
-    number_test = number[rand_number]
-    return number_test
+    # Compare by value, so a number listed twice in the file can't repeat either
+    choices = [n for n in numbers if n != previous] or numbers
+    return random.choice(choices)
 
 # Event handling function
 def handle_events():
-    global running, number_game, hide_toggle, reveal_button_x, reveal_button_y, reveal_button_width, reveal_button_height
-    global shoot_button_x, shoot_button_y, shoot_button_width, shoot_button_height, background_image
+    global running, number_game, hide_toggle, screen, screen_width, screen_height
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-            
+
         # Handle window resizing
         if event.type == pygame.VIDEORESIZE:
             screen_width, screen_height = event.w, event.h
             screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
-            background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
-            game_font_size = int(0.5 * screen_height)
-            game_font = pygame.font.SysFont('Calistoga', game_font_size)
-            smallfont_size = int(0.1 * screen_height)
-            smallfont = pygame.font.SysFont('Corbel', smallfont_size)
-            reveal_text = smallfont.render('Reveal', True, color)
-            shoot_text = smallfont.render('Shoot!', True, color)
-            
-            reveal_button_width = int(0.2 * screen_width)  # 20% of the screen width
-            reveal_button_height = int(0.1 * screen_height)  # 10% of the screen height
-            reveal_button_x = int(0.1 * screen_width)
-            reveal_button_y = int(0.8 * screen_height)
-
-            shoot_button_width = int(0.2 * screen_width)  # 20% of the screen width
-            shoot_button_height = int(0.1 * screen_height)  # 10% of the screen height
-            shoot_button_x = int(0.9 * screen_width) - shoot_button_width
-            shoot_button_y = int(0.8 * screen_height)
-
-            # Recalculate text position on window resize
-            text_x = (screen_width - text_rect.width) // 2
-            text_y = (screen_height - text_rect.height) // 2
+            layout()
 
         if event.type == pygame.MOUSEBUTTONDOWN:
-            mouse_x, mouse_y = event.pos
-            
             # Reveal button click
-            if reveal_button_x <= mouse_x <= reveal_button_x + reveal_button_width and reveal_button_y <= mouse_y <= reveal_button_y + reveal_button_height:
+            if reveal_button.collidepoint(event.pos):
                 hide_toggle = 1 - hide_toggle
 
             # Shoot button click
-            if shoot_button_x <= mouse_x <= shoot_button_x + shoot_button_width and shoot_button_y <= mouse_y <= shoot_button_y + shoot_button_height:
-                number_game = numbergen()
+            if shoot_button.collidepoint(event.pos):
+                number_game = numbergen(previous=number_game)
                 hide_toggle = 0
 
     return True
+
+def draw_button(rect, text, mouse):
+    color = button_hover_color if rect.collidepoint(mouse) else button_color
+    pygame.draw.rect(screen, color, rect)
+    # Center the visible letters, not the font's full line height (which leaves room for g, y, etc.)
+    ink = text.get_bounding_rect()
+    screen.blit(text, (rect.centerx - ink.centerx, rect.centery - ink.centery))
 
 # Main game loop
 hide_toggle = 0
@@ -122,23 +107,8 @@ while running:
     # the variable as a tuple
     mouse = pygame.mouse.get_pos()
 
-    # Draw reveal button
-    if reveal_button_x <= mouse[0] <= reveal_button_x + reveal_button_width and reveal_button_y <= mouse[1] <= reveal_button_y + reveal_button_height:
-        pygame.draw.rect(screen, color_light, [reveal_button_x, reveal_button_y, reveal_button_width, reveal_button_height])
-    else:
-        pygame.draw.rect(screen, color_dark, [reveal_button_x, reveal_button_y, reveal_button_width, reveal_button_height])
-
-    # superimposing the text onto the reveal button
-    screen.blit(reveal_text, (reveal_button_x + int(0.032 * screen_width), reveal_button_y + int(0.01 * screen_height)))
-
-    # Draw shoot button
-    if shoot_button_x <= mouse[0] <= shoot_button_x + shoot_button_width and shoot_button_y <= mouse[1] <= shoot_button_y + shoot_button_height:
-        pygame.draw.rect(screen, color_light, [shoot_button_x, shoot_button_y, shoot_button_width, shoot_button_height])
-    else:
-        pygame.draw.rect(screen, color_dark, [shoot_button_x, shoot_button_y, shoot_button_width, shoot_button_height])
-
-    # superimposing the text onto the shoot button
-    screen.blit(shoot_text, (shoot_button_x + int(0.032 * screen_width), shoot_button_y + int(0.01 * screen_height)))
+    draw_button(reveal_button, reveal_text, mouse)
+    draw_button(shoot_button, shoot_text, mouse)
 
     # Draw numbers
     if hide_toggle == 1:
@@ -146,18 +116,8 @@ while running:
     else:
         text_surface = game_font.render(hidden_number_game, False, (110, 170, 70))
 
-    # Get the dimensions of the text surface
-    text_rect = text_surface.get_rect()
-
-    # Recalculate the center position on the screen after resizing
-    text_x = (screen.get_width() - text_rect.width) // 2
-    text_y = (screen.get_height() - text_rect.height) // 2
-
-    # blit the text onto the screen
-    screen.blit(text_surface, (text_x, text_y))
-    
-    # updates the frames of the game
-    pygame.display.update()
+    # Center the numbers on the screen
+    screen.blit(text_surface, text_surface.get_rect(center=screen.get_rect().center))
 
     # flip() the display to put your work on screen
     pygame.display.flip()
