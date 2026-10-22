@@ -9,7 +9,7 @@ pygame.init()
 screen_width = 1280
 screen_height = 720
 screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
-pygame.display.set_caption("Scuba Reader v.1.3")
+pygame.display.set_caption("Scuba Reader v.1.4")
 
 # Load window icon
 icon_path = resource('icon', 'snorkel.png')
@@ -24,16 +24,21 @@ background_image_original = background_image.copy()
 with open(editable('scuba', 'scuba_words.txt'), "r") as file:
     texts = [line.strip() for line in file.readlines() if line.strip()]
 
-# Define the font
+# Define the fonts: the speed controls stay one size; the swimmers' words grow with the window
 font = pygame.font.SysFont("Arial", 28)
+WORD_FONT_SIZE = 38  # At the starting 1280x720 window
+word_font = font  # Set for the window size in handle_resize()
 
 # Load the scuba image; it's scaled in handle_resize()
 scuba_image = pygame.image.load(resource('scuba', 'scuba.png'))
 scuba_image_original = scuba_image.copy()
 
 # Scaling factors for scuba image, relative to the first word's size
-scuba_width_factor = 6
-scuba_height_factor = 3
+scuba_width_factor = 5
+scuba_height_factor = 2.6
+
+# Where the swimmer's body is in the scuba image (fractions of its width and height); words are centered there
+BODY_CENTER = (0.615, 0.507)
 
 # Minimum space between swimmers, in pixels
 SWIMMER_GAP = 8
@@ -44,15 +49,19 @@ class TextObject(pygame.sprite.Sprite):
         super().__init__()
         self.font = font
         self.color = color
-        self.text = text
-        self.text_image = self.font.render(self.text, True, self.color)
-        self.text_rect = self.text_image.get_rect()
+        self.set_text(text)
         self.rect = self.text_rect.copy()
         # Exact position; rect.x holds it rounded to whole pixels. Rounding each step instead
         # made swimmers move different amounts depending on where they were, so they could drift together.
         self.x = 0.0
         self.scroll_speed = 0.25  # Scroll speed
         self.waiting = False  # Waiting off-screen on the left for a clear spot to swim in
+
+    def set_text(self, text):
+        self.text = text
+        self.text_image = self.font.render(self.text, True, self.color)
+        self.text_rect = self.text_image.get_rect()
+        self.ink = self.text_image.get_bounding_rect()  # The visible letters, for centering
 
     def box(self):
         """The area the whole swimmer covers on screen (the scuba image, not just the word)."""
@@ -70,9 +79,7 @@ class TextObject(pygame.sprite.Sprite):
         self.rect.x = round(self.x)
 
         if self.rect.left > screen_width:  # If the swimmer goes off the screen on the right
-            self.text = random.choice(texts)  # Randomly select a new text
-            self.text_image = self.font.render(self.text, True, self.color)  # Render the new text
-            self.text_rect = self.text_image.get_rect()
+            self.set_text(random.choice(texts))  # Randomly select a new text
             # Come back in from just off the left edge, at a random height clear of other swimmers
             place_swimmer(self, -scuba_image.get_width())
 
@@ -115,7 +122,7 @@ stagger_offset = 100
 # Create a text object for each word
 for i in range(num_objects):
     color = (65, 240, 100)  # Green text color
-    text_obj = TextObject(texts[i], font, color)
+    text_obj = TextObject(texts[i], word_font, color)
     text_obj.waiting = True  # Not on screen until it's placed below
     all_text_objects.add(text_obj)
 
@@ -132,14 +139,20 @@ button_spacing = int(button_size * 0.5)
 
 # Function to handle resizing of elements
 def handle_resize(first_time=False):
-    global screen_width, screen_height, background_image, scuba_image, button_size, button_spacing
+    global screen_width, screen_height, background_image, scuba_image, button_size, button_spacing, word_font
 
     # Scale the background image to fit the new screen size
     background_image = pygame.transform.scale(background_image_original, (screen_width, screen_height))
 
+    # Size the words for the window, so they're as easy to read full screen as in the starting window
+    word_font = pygame.font.SysFont("Arial", max(20, round(WORD_FONT_SIZE * min(screen_width / 1280, screen_height / 720))))
+    for text_obj in all_text_objects:
+        text_obj.font = word_font
+        text_obj.set_text(text_obj.text)
+
     # Scale the scuba image based on the first word's size
-    word_width, word_height = font.size(texts[0] if texts else "word")
-    scuba_image = pygame.transform.scale(scuba_image_original, (scuba_width_factor * word_width, scuba_height_factor * word_height))
+    word_width, word_height = word_font.size(texts[0] if texts else "word")
+    scuba_image = pygame.transform.scale(scuba_image_original, (round(scuba_width_factor * word_width), round(scuba_height_factor * word_height)))
 
     if first_time:
         # Stagger the swimmers across the screen, each at a random height clear of the others
@@ -235,12 +248,10 @@ while running:
         if text_obj.waiting:
             continue  # Still off-screen, waiting for a clear spot
         screen.blit(scuba_image, text_obj.rect)  # Draw scuba image
-        text_rect_center = text_obj.rect.center
-        text_rect_center = (
-            text_rect_center[0] + (scuba_image.get_width() - text_obj.text_rect.width) // 2,
-            text_rect_center[1] + (scuba_image.get_height() - text_obj.text_rect.height) // 3.5,
-        )
-        screen.blit(text_obj.text_image, text_rect_center)  # Draw centered text over scuba image
+        # Center the word's visible letters on the swimmer's body
+        body_x = text_obj.rect.x + round(scuba_image.get_width() * BODY_CENTER[0])
+        body_y = text_obj.rect.y + round(scuba_image.get_height() * BODY_CENTER[1])
+        screen.blit(text_obj.text_image, (body_x - text_obj.ink.centerx, body_y - text_obj.ink.centery))
 
     # Display current scroll speed and buttons
     display_scroll_speed()

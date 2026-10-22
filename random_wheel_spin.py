@@ -11,7 +11,7 @@ pygame.init()
 # Initial screen dimensions
 INIT_WIDTH, INIT_HEIGHT = 1000, 600
 screen = pygame.display.set_mode((INIT_WIDTH, INIT_HEIGHT), pygame.RESIZABLE)
-pygame.display.set_caption("Random Wheel Spinner v.1.2")
+pygame.display.set_caption("Random Wheel Spinner v.1.3")
 
 # Randomness from the operating system, so spins can't fall into a repeatable pattern
 rng = random.SystemRandom()
@@ -34,6 +34,7 @@ TEXTBOX_COLOR_ACTIVE = pygame.Color('dodgerblue2')
 # Font
 font = None
 large_font = None
+result_font = None  # The winning entry in the result box
 
 class TextBox:
     def __init__(self, x, y, w, h, text=''):
@@ -489,39 +490,47 @@ class WheelSpinner:
             # Scale the box with the window by the same factor as the fonts
             scale = min(width / INIT_WIDTH, height / INIT_HEIGHT)
             winner_text = large_font.render("WINNER:", True, BLACK)
-            result_text = large_font.render(self.result, True, (0, 100, 0))
+            result_text = result_font.render(self.result, True, (0, 100, 0))
+            # A long result is shrunk to fit inside the window
+            max_text_width = width - 20 - 40 * scale
+            if result_text.get_width() > max_text_width:
+                shrink = max_text_width / result_text.get_width()
+                result_text = pygame.transform.smoothscale(
+                    result_text, (int(max_text_width), max(1, int(result_text.get_height() * shrink))))
 
             # Widen the box for long results, but keep it inside the window
             box_width = min(width - 20, max(350 * scale, result_text.get_width() + 80 * scale))
-            box_height = 200 * scale
+            box_height = 260 * scale
             box_rect = pygame.Rect(0, 0, box_width, box_height)
             box_rect.center = (width // 2, height // 2)
             pygame.draw.rect(surface, WHEEL_BACKGROUND, box_rect, border_radius=int(15 * scale))
             pygame.draw.rect(surface, (0, 100, 0), box_rect, max(2, int(3 * scale)), border_radius=int(15 * scale))
 
-            surface.blit(winner_text, winner_text.get_rect(center=(width // 2, height // 2 - 50 * scale)))
-            surface.blit(result_text, result_text.get_rect(center=(width // 2, height // 2 + 5 * scale)))
+            surface.blit(winner_text, winner_text.get_rect(center=(width // 2, height // 2 - 85 * scale)))
+            surface.blit(result_text, result_text.get_rect(center=(width // 2, height // 2 - 5 * scale)))
 
             # Shared with the click handler so the clickable area always matches the drawing
             self.close_rect = pygame.Rect(0, 0, 120 * scale, 40 * scale)
-            self.close_rect.center = (width // 2, height // 2 + 60 * scale)
+            self.close_rect.center = (width // 2, height // 2 + 85 * scale)
             pygame.draw.rect(surface, (200, 50, 50), self.close_rect, border_radius=int(5 * scale))
             pygame.draw.rect(surface, BLACK, self.close_rect, 2, border_radius=int(5 * scale))
             close_text = font.render("CLOSE", True, WHITE)
             surface.blit(close_text, close_text.get_rect(center=self.close_rect.center))
 
 def initialize_fonts():
-    global font, large_font
+    global font, large_font, result_font
     # Initialize fonts with default size
     font = pygame.font.SysFont('Arial', 20)
     large_font = pygame.font.SysFont('Arial', 36, bold=True)
+    result_font = pygame.font.SysFont('Arial', 60, bold=True)
 
 def scale_fonts(width_ratio, height_ratio):
-    global font, large_font
+    global font, large_font, result_font
     # Scale font sizes based on window dimensions
     base_font_size = int(20 * min(width_ratio, height_ratio))
     font = pygame.font.SysFont('Arial', base_font_size)
     large_font = pygame.font.SysFont('Arial', int(base_font_size * 1.8), bold=True)
+    result_font = pygame.font.SysFont('Arial', int(base_font_size * 3), bold=True)
 
 # Default segments
 default_segments = ["Red", "Orange", "Yellow", "Green", 
